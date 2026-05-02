@@ -1,0 +1,58 @@
+{
+  "network": "devnet",
+  "rpcUrl": "https://api.devnet.solana.com",
+  "percolatorProgramId": "2SSnp35m7FQ7cRLNKGdW5UzjYFF6RBUNq7d3m5mqNByp",
+  "matcherProgramId": "",
+  "wallets": {
+    "hedger": "~/.config/ballast/ballast-hedger.json",
+    "lp": "~/.config/ballast/ballast-lp.json",
+    "oracleAuthority": "~/.config/ballast/ballast-oracle-authority.json"
+  },
+  "slabs": {
+    "solUsd": {
+      "slab": "",
+      "vault": "",
+      "vaultPda": "",
+      "oracle": "",
+      "oracleType": "pyth",
+      "marketType": "INVERTED",
+      "collateralMint": "So11111111111111111111111111111111111111112",
+      "lpIndex": null,
+      "hedgerIndex": null,
+      "matcherCtx": ""
+    },
+    "eurUsd": {
+      "slab": "",
+      "vault": "",
+      "vaultPda": "",
+      "oracle": "",
+      "oracleType": "admin",
+      "oracleSource": "pyth-hermes-relay",
+      "pythFeedId": "a995d00bb36a63cef7fd2c287dc105fc8f3d93779f062f09551b0af3e81ec30b",
+      "marketType": "NORMAL",
+      "collateralMint": "",
+      "lpIndex": null,
+      "hedgerIndex": null,
+      "matcherCtx": ""
+    }
+  },
+  "pyth": {
+    "hermesUrl": "https://hermes.pyth.network",
+    "receiverProgramId": "rec5EKMGg6MxZYaMdyBfgwp4d5rB9T1VQH5pJv5LtFJ",
+    "feeds": {
+      "SOL/USD": "ef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d",
+      "EUR/USD": "a995d00bb36a63cef7fd2c287dc105fc8f3d93779f062f09551b0af3e81ec30b",
+      "USD/INR": "0ac0f9a2886fc2dd708bc66cc2cea359052ce89d324f45d95fadbc6c4fcf1809",
+      "GBP/USD": "84c2dde9633d93d1bcad84e7dc41c9d56578b7ec52fabedc1f335d673df0a7c1",
+      "USDC/USD": "eaa020c61cc479712813461ce153894a96a6c00b21ed0cfc2798d1f9a9e9c94a",
+      "USDT/USD": "2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b"
+    },
+    "sponsoredFeedAccountsDevnet": {
+      "SOL/USD": "7UVimffxr9ow1uXYxsr4LHAcV58mLzhmwaeKvJ1pjLiE"
+    }
+  },
+  "keeper": {
+    "crankIntervalMs": 30000,
+    "oracleRelayIntervalMs": 900000
+  }
+}
