@@ -268,7 +268,11 @@ Supporting Infrastructure:
 }
 ```
 
+**Status update (2026-05-01):** the SOL/USD slab is deployed with **Pyth Pull** as the primary oracle, not Chainlink — `7UVimffxr9ow1uXYxsr4LHAcV58mLzhmwaeKvJ1pjLiE` (sponsored devnet push feed for SOL/USD, feed-id `ef0d8b6f…`). Decision and validation in `docs/pyth-oracle-compatibility.md`. Other deploy-time choices: `max_staleness_secs=120` (2× Pyth's 60s heartbeat), `conf_filter_bps=200` (matches upstream test defaults). The Chainlink address above is preserved as the original spec; Mode-2 admin-pushed (§4.5) is unchanged. Live slab: `HftDjBvRArFoSnGcvxwSCN7rok5PYZtK2shckWBE5inY` (PR #3).
+
 ### 4.5 Oracle Strategy — Phase 0
+
+> **Status update (2026-05-01):** the SOL/USD slab uses **Pyth Pull** as Mode 1 (sponsored devnet push feed `7UVimffxr9ow1uXYxsr4LHAcV58mLzhmwaeKvJ1pjLiE`), not Chainlink. The reasoning is in `docs/pyth-oracle-compatibility.md`. The Mode-2 admin-pushed path is unchanged. Replace "Chainlink" with "Pyth Pull" in the original text below; the architectural argument (auto-detection by account owner, two modes coexisting on one slab, hyperp-authority gating Mode 2) is identical.
 
 Phase 0 has two oracle modes that serve different purposes:
 
@@ -386,7 +390,7 @@ Exit: Both wallets funded. CLI builds and runs. Existing devnet market accessibl
 Entry: Step 0.1 complete.
 
 Actions:
-1. Create `scripts/ballast/setup-ballast-market.ts` based on `scripts/setup-devnet-market.ts` but with Ballast-specific parameters (Section 4.4).
+1. Create `scripts/ballast/setup-ballast-sol-market.ts` based on `scripts/setup-devnet-market.ts` but with Ballast-specific parameters (Section 4.4) and Pyth Pull (not Chainlink) as the oracle.
 2. Deploy the slab. Record the slab pubkey, vault pubkey, vault PDA.
 3. Top up the insurance fund with 5 SOL.
 4. Verify deployment: `npx tsx scripts/dump-market.ts --slab <slab>` returns correct configuration.
@@ -394,9 +398,11 @@ Actions:
 
 Exit: Slab deployed, configured, and verified. SC-0.1 satisfied.
 
+**Status (2026-05-01):** done. PR #3 (squash-merged into master) deploys slab `HftDjBvRArFoSnGcvxwSCN7rok5PYZtK2shckWBE5inY` with insurance 5 SOL, Pyth Pull primary, INVERTED, mm 5%/im 10%/fee 10bps.
+
 **Step 0.3 — Participant Setup**
 
-Entry: Step 0.2 complete.
+Entry: Step 0.2 complete. **Critical caveat (discovered 2026-05-01):** Percolator's wrapper gates engine-state-changing ops (`InitLP`, `DepositCollateral`, `TopUpInsurance`, `Trade*`) on `engine.lastGoodOracleSlot` freshness against `permissionlessResolveStaleSlots` (= 100 slots ≈ 40 s in our config). Without a continuous keeper bot running, that slot ages out almost immediately and ops revert with `OracleStale (0x6)` — even though the Pyth feed itself is fresh. Until Step 0.5 lands the keeper bot, every one-shot script must prepend a `KeeperCrank` instruction to the same transaction so the slot refreshes atomically before the gated op fires. Plan a `prependCrankIfStale()` helper and apply it to all engine-state-changing builders.
 
 Actions:
 1. Initialize LP account using `ballast-lp.json`: `percolator-cli init-lp --slab <slab>`. Record LP index.
@@ -442,7 +448,7 @@ Actions:
 1. Record oracle price before trade.
 2. Execute hedge trade: CargoBill Hedger opens a LONG position (in the inverted market = short SOL economically) via `trade-cpi` against the Ballast LP.
 3. Verify margin reserved correctly for both sides.
-4. Let the position run for at least 30 minutes with the keeper crank active and Chainlink oracle providing live prices.
+4. Let the position run for at least 30 minutes with the keeper crank active and Pyth Pull oracle providing live prices.
 5. Record oracle price after 30 minutes.
 6. Calculate expected PnL based on price change.
 7. Compare expected PnL to actual PnL from slab state. Document any discrepancy.
@@ -476,7 +482,7 @@ Actions:
    - Push oracle price adversely until the position breaches maintenance margin.
    - Run keeper crank. Verify liquidation is processed.
    - Document insurance fund behavior (did it absorb the loss? how much?).
-5. Disable admin oracle authority (revert to Chainlink).
+5. Disable admin oracle authority (revert to Pyth Pull).
 
 Exit: SC-0.4, SC-0.9 satisfied.
 
