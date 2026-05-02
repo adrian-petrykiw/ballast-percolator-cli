@@ -23,6 +23,9 @@ ballast-admin.json
 # Ballast runtime config (only the *.example.json is committed)
 config/ballast-config.json
 config/*-local.json
+# Per-deploy manifests + dump-market.ts JSON snapshots
+config/ballast-*-deploy.json
+config/*.dump.json
 
 # pnpm store / caches
 .pnpm-store/
