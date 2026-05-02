@@ -93,6 +93,8 @@ Risk Parameters:
 
 The existing devnet market includes two LP configurations: a passive matcher (LP 0, 50bps spread) and a vAMM matcher (LP 4, tighter spreads with impact pricing). Both are operational with funded collateral and an insurance fund of approximately 8.8 SOL.
 
+**Status update (2026-05-01):** The slab account `A7wQtRT9DhFqYho8wTVqQCDc7kYPTUXGPATiyVbZKVFs` no longer exists on devnet — `getAccountInfo` returns `null`. The Percolator program at `2SSnp35m7FQ7cRLNKGdW5UzjYFF6RBUNq7d3m5mqNByp` remains live, as does the matcher at `4HcGCsyjAqnFua5ccuXyt8KRRQzKFbGTJkVChpS7Yfzy`. Per §3.1, Ballast deploys fresh slabs anyway, so this does not block Phase 0; the configuration above is preserved as historical reference for the parameters Yakovenko's team last ran. Verified during scaffolding — see `docs/pyth-oracle-compatibility.md`.
+
 ---
 
 ## 3. Open Questions — Resolved
@@ -480,7 +482,7 @@ Exit: SC-0.4, SC-0.9 satisfied.
 
 **Step 0.8 — Stress Testing**
 
-Entry: Step 0.7 complete.
+Entry: Step 0.7 complete. **Approve native build scripts before running stress tests:** run `pnpm approve-builds` and accept `bigint-buffer` (native u64/u128 serialization; pnpm v10 blocks postinstall scripts by default — the JS fallback is correct but adds µs-scale overhead per call, which compounds at stress-test volume). Decline `bufferutil`, `utf-8-validate`, `protobufjs`, and `esbuild` — irrelevant to runtime correctness or the stress signal. Discovered during Phase 0 scaffolding (PR #1) when `pnpm install` emitted the "Ignored build scripts" warning.
 
 Actions:
 1. Run `npx tsx scripts/stress-worst-case.ts` against the Ballast slab. Document results.
