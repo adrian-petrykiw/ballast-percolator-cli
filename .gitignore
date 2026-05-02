@@ -9,10 +9,16 @@ dist/
 !.env.example
 
 # Solana / Ballast keypairs — never commit
+# Defense in depth: the canonical location is ~/.config/ballast/ (outside
+# the repo), but match by name too in case anyone ever copies one in.
 *keypair*.json
 *-keypair.json
 *.keypair
 id.json
+ballast-hedger.json
+ballast-lp.json
+ballast-oracle-authority.json
+ballast-admin.json
 
 # Ballast runtime config (only the *.example.json is committed)
 config/ballast-config.json
