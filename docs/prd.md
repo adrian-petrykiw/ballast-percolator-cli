@@ -93,6 +93,8 @@ Risk Parameters:
 
 The existing devnet market includes two LP configurations: a passive matcher (LP 0, 50bps spread) and a vAMM matcher (LP 4, tighter spreads with impact pricing). Both are operational with funded collateral and an insurance fund of approximately 8.8 SOL.
 
+**Status update (2026-05-01):** The slab account `A7wQtRT9DhFqYho8wTVqQCDc7kYPTUXGPATiyVbZKVFs` no longer exists on devnet — `getAccountInfo` returns `null`. The Percolator program at `2SSnp35m7FQ7cRLNKGdW5UzjYFF6RBUNq7d3m5mqNByp` remains live, as does the matcher at `4HcGCsyjAqnFua5ccuXyt8KRRQzKFbGTJkVChpS7Yfzy`. Per §3.1, Ballast deploys fresh slabs anyway, so this does not block Phase 0; the configuration above is preserved as historical reference for the parameters Yakovenko's team last ran. Verified during scaffolding — see `docs/pyth-oracle-compatibility.md`.
+
 ---
 
 ## 3. Open Questions — Resolved
