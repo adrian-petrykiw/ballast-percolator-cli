@@ -82,12 +82,17 @@ For runtime price display, `@pythnetwork/pyth-solana-receiver`'s `PythSolanaRece
 
 ## 7. Open items for Phase 0 execution
 
-1. Derive and verify shard-0 PDAs for USDC/USD and USDT/USD on devnet (write a short helper script using `@pythnetwork/pyth-solana-receiver`).
-2. Decide `max_staleness_secs` and `conf_filter_bps` for `init-market` — Pyth heartbeats every 60 s on devnet, so `max_staleness_secs ≥ 120` is the safe floor; `conf_filter_bps = 200` (2%) matches upstream test defaults.
-3. Confirm Pyth's `invert` flag (`--invert 1`) is the correct path for the inverted SOL/USD market — upstream docs imply yes; will validate during Step 0.2 deployment.
-4. Build a Hermes-relay watchdog (PRD Step 0.5) that pushes EUR/USD on a 15-min cadence and aborts gracefully if Hermes is unreachable.
+1. Derive and verify shard-0 PDAs for USDC/USD and USDT/USD on devnet (write a short helper script using `@pythnetwork/pyth-solana-receiver`). **Status: open**, defer to Step 0.1 (EUR/USD slab).
+2. ~~Decide `max_staleness_secs` and `conf_filter_bps` for `init-market`~~ **Resolved 2026-05-01:** `max_staleness_secs=120` and `conf_filter_bps=200`, applied in `scripts/ballast/setup-ballast-sol-market.ts`.
+3. ~~Confirm Pyth's `invert` flag (`--invert 1`) is the correct path for the inverted SOL/USD market~~ **Resolved 2026-05-01 (PR #3):** `invert=1` deployed cleanly. `engine.lastOraclePrice = 11954` after warmup crank, which equals `1e12 / SOL_USD_e6 ≈ 11955` at SOL ≈ \$83.65 — within rounding. Pyth Pull + invert is the correct path.
+4. Build a Hermes-relay watchdog (PRD Step 0.5) that pushes EUR/USD on a 15-min cadence and aborts gracefully if Hermes is unreachable. **Status: open.**
 
-## 8. References
+## 8. Operational findings (post-deploy)
+
+- **`PriceUpdateV2` `VerificationLevel` is variable-size** (Full=1 byte, Partial=2 bytes). Sponsored push feeds use Full, so `price_message` starts at byte 41, not 42. The hand-rolled parser in `scripts/ballast/utils/pyth.ts` reads the variant tag at byte 40 and branches accordingly. An earlier draft assumed fixed-2 — produced garbage prices.
+- **Engine-state ops gate on `lastGoodOracleSlot` freshness, not Pyth freshness.** `TopUpInsurance`, `InitLP`, `DepositCollateral`, and `Trade*` all revert with `OracleStale (0x6)` if more than ~`permissionlessResolveStaleSlots` (= 100 slots ≈ 40 s) elapsed since the last `KeeperCrank`. The Pyth feed itself can be fresh and you'll still get the error. Without the keeper bot from PRD Step 0.5 running continuously, every one-shot Ballast script must prepend a `KeeperCrank` instruction to the same transaction. The matcher PR will introduce a `prependCrankIfStale()` helper.
+
+## 9. References
 
 - [Pyth Solana Receiver SDK](https://github.com/pyth-network/pyth-crosschain/tree/main/target_chains/solana/pyth_solana_receiver_sdk) — `PriceUpdateV2` layout, PDA derivation
 - [Pyth Pull Oracle on Solana](https://docs.pyth.network/price-feeds/core/use-real-time-data/pull-integration/solana) — receiver program ID, Anchor account type
