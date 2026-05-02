@@ -482,7 +482,7 @@ Exit: SC-0.4, SC-0.9 satisfied.
 
 **Step 0.8 — Stress Testing**
 
-Entry: Step 0.7 complete.
+Entry: Step 0.7 complete. **Approve native build scripts before running stress tests:** run `pnpm approve-builds` and accept `bigint-buffer` (native u64/u128 serialization; pnpm v10 blocks postinstall scripts by default — the JS fallback is correct but adds µs-scale overhead per call, which compounds at stress-test volume). Decline `bufferutil`, `utf-8-validate`, `protobufjs`, and `esbuild` — irrelevant to runtime correctness or the stress signal. Discovered during Phase 0 scaffolding (PR #1) when `pnpm install` emitted the "Ignored build scripts" warning.
 
 Actions:
 1. Run `npx tsx scripts/stress-worst-case.ts` against the Ballast slab. Document results.
