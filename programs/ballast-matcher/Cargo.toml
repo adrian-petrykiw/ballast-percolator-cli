@@ -1,0 +1,22 @@
+[package]
+name = "ballast-matcher"
+version = "0.0.1"
+edition = "2021"
+license = "Apache-2.0"
+description = "Ballast allowlist matcher for Percolator (devnet POC, unaudited)"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "ballast_matcher"
+
+[features]
+no-entrypoint = []
+
+[dependencies]
+solana-program = "~1.18"
+
+[profile.release]
+overflow-checks = true
+lto = "fat"
+codegen-units = 1

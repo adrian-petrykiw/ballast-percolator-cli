@@ -2,4 +2,33 @@ node_modules/
 dist/
 *.log
 .DS_Store
+
+# Environment / secrets — never commit
 .env
+.env.*
+!.env.example
+
+# Solana / Ballast keypairs — never commit
+*keypair*.json
+*-keypair.json
+*.keypair
+id.json
+
+# Ballast runtime config (only the *.example.json is committed)
+config/ballast-config.json
+config/*-local.json
+
+# pnpm store / caches
+.pnpm-store/
+.cache/
+
+# Rust / matcher build artifacts (lockfile is committed for deterministic builds)
+target/
+**/*.rs.bk
+
+# IDE
+.vscode/
+.idea/
+
+# Per-user Claude Code settings (project-wide settings.json IS committed)
+.claude/settings.local.json

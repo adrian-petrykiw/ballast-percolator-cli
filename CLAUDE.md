@@ -10,6 +10,29 @@ This repo is a fork of `aeyakovenko/percolator-cli` extended with CargoBill-spec
 
 ---
 
+## Workflow Rule — Claude Does Not Run Commits, Pushes, or PRs
+
+**Claude (Code) does not execute commands that mutate shared state.** When a step calls for a commit, push, tag, PR, or deploy / on-chain-write action, Claude emits a single fenced bash block with the exact command(s) — heredoc'd commit message included — for the user to run in the VS Code terminal at the repo root. The user reviews the staged diff, runs the block, and reports back. Claude does **not** retry the same command after a denial; it produces the terminal block and waits.
+
+**Applies to:**
+
+- `git commit`, `git push`, `git tag`, `git push --tags`
+- Any history-rewriting op: `git rebase`, `git reset --hard`, `git revert`, `git cherry-pick`, `git commit --amend`, `git branch -D`, `git stash drop`
+- `gh pr create | merge | close`, `gh issue create | close`, `gh release create`, `gh workflow run`
+- The `/create-pr` skill — Claude must NOT invoke it; emit the equivalent `gh pr create` command instead
+- `solana program deploy | close | upgrade`, any `solana` or RPC call submitting a transaction signed by a Ballast keypair, `spl-token` writes (mint, burn, transfer, approve)
+- Any `cargo publish`, `npm publish`, `pnpm publish`
+
+**Free without confirmation (read-only):** `git status | diff | log | show | branch | check-ignore | ls-files`, `gh pr view | list | checks`, `gh issue view`, `solana account | program show | balance`, `getAccountInfo`-style RPC queries.
+
+**Staging is fine** — Claude may run `git add <specific paths>` and `git restore --staged <paths>` to prepare a clean index for the user to inspect. Never `git add -A` or `git add .`. If the index already contains files Claude did not stage, leave them alone or flag them.
+
+**Output format for proposed commits:** one fenced bash block per logical commit, in execution order, copy-pasteable as-is at the repo root. Multi-line commit messages use heredocs so newlines and quoting survive. Put the `git push` and `gh pr create` blocks separately at the end. Do not add `Co-Authored-By: Claude` or "Generated with Claude Code" trailers — these are the user's commits.
+
+**Why:** Claude runs in a sandbox without credentials for git pushes / `gh` API / on-chain signers, and the user wants to review every state-changing action before it lands. Don't ask permission per command — emit the block, wait for the user to run it, move on.
+
+---
+
 ## Upstream: Percolator CLI
 
 TypeScript CLI for interacting with the Percolator perpetuals protocol on Solana. Targets **v12.21+** of the on-chain program exclusively (v12.20 is deprecated). Built with Commander.js, uses ESM modules, requires **Node 20+** and **pnpm**.
