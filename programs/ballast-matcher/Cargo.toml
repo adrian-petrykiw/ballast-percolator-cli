@@ -16,6 +16,16 @@ no-entrypoint = []
 [dependencies]
 solana-program = "~1.18"
 
+[dev-dependencies]
+# Entrypoint-mocking framework for the integration suite in tests/. These pull a
+# substantial transitive tree (solana-runtime, solana-banks-*, tokio, ...) but they
+# do NOT affect `cargo-build-sbf` because dev-dependencies are excluded from the
+# cdylib build. Versions track our `solana-program = "~1.18"` pin so the matcher
+# and the harness compile against the same on-chain ABI surface.
+solana-program-test = "~1.18"
+solana-sdk = "~1.18"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+
 [profile.release]
 overflow-checks = true
 lto = "fat"
