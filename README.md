@@ -1,6 +1,94 @@
-# ballast-percolator-cli
+# Ballast — Perpetual Futures for Supply Chain
 
-Command-line interface for interacting with the Ballast perpetuals protocol on Solana.
+> **Solana Frontier Hackathon 2026** — by [CargoBill](https://cargobill.co) (Breakout Hackathon winner, Colosseum Accelerator graduate)
+
+Ballast is on-chain hedging infrastructure for global logistics — bilateral perpetual futures built on [Percolator](https://github.com/aeyakovenko/percolator), Anatoly Yakovenko's formally-verified risk engine on Solana.
+
+Logistics companies operate on 1-3% margins while managing massive cross-border financial risk: freight rates that swing 300%+ and currency exposure that drifts over 30-120 day payment cycles. Existing freight derivatives (FFAs) require OTC brokers, ISDA agreements, $500k+ minimums, and weeks of setup. Ballast makes hedging accessible with perpetual swaps that settle instantly, have no expiry, and require no broker.
+
+## What We Built
+
+Two working markets deployed on Solana devnet during the hackathon:
+
+### Market 1 — Currency Hedge (SOL/USD)
+
+Inverted perpetual on Pyth SOL/USD oracle. Extensible to any SPL token pair (USDC/EURC, USDC/CNY, cbINR/USDC in production).
+
+- Custom allowlist matcher program (Rust, deployed to devnet)
+- LP-signature-gated bilateral trades between KYB-verified counterparties
+- Keeper crank bot running at 30-second intervals
+- PnL verified within 0.5% tolerance across price scenarios
+- Liquidation mechanics and stress tests validated
+- Unauthorized wallets rejected at the program level
+
+**Slab:** `HftDjBvRArFoSnGcvxwSCN7rok5PYZtK2shckWBE5inY`
+
+### Market 2 — Freight Rate Hedge (FBX Index)
+
+First non-crypto underlying ever deployed on Percolator. Uses admin-pushed oracle with historical Freightos Baltic Index data.
+
+- 30-day simulation with historical FBX data
+- Bilateral shipper vs carrier hedge execution
+- Funding rate parameters tuned for low-volatility indices
+- 50% rate spike stress test validated
+- Stale oracle safe-mode confirmed
+- Full event log with SHA-256 state hashes per transaction
+
+### Key Innovation: Allowlist Matcher
+
+A custom Rust on-chain program extending [percolator-match](https://github.com/aeyakovenko/percolator-match) that stores a wallet allowlist in the matcher context account. Only wallets in the allowlist can execute trades through the LP — enforced at the program level via CPI during `TradeCpi`. This is the architectural foundation for bilateral, KYB-gated swaps.
+
+## Architecture
+
+```
+  ┌──────────┐                              ┌──────────────┐
+  │  Hedger  │◄────► Percolator Risk ◄─────►│ Counterparty │
+  │  (User)  │       Engine (v12.21)         │  LP (Signer) │
+  └──────────┘              │                └──────────────┘
+                            │
+                 ┌──────────▼──────────┐
+                 │  Allowlist Matcher   │
+                 │  (Custom Program)    │
+                 └─────────────────────┘
+                            │
+        ┌───────────┬───────┴────┬──────────────┐
+        │           │            │              │
+   Pyth/Admin    Keeper      Event          Allowlist
+    Oracle     Crank Bot     Logger        (On-chain)
+```
+
+## Regulatory Design
+
+Structured as bilateral ECP-to-ECP swaps under the Commodity Exchange Act. Not a DEX, not a trading platform, not multi-participant price discovery. One slab per counterparty/trade lane pair. LP-signature gating prevents unauthorized participation.
+
+## Quick Start
+
+```bash
+# Install
+pnpm install
+pnpm build
+
+# Approve native builds for stress testing (optional)
+pnpm approve-builds    # accept bigint-buffer only
+
+# Run the Ballast keeper crank bot
+npx tsx scripts/ballast/ballast-crank-bot.ts
+
+# Dump Ballast SOL/USD market state
+npx tsx scripts/dump-state.ts --slab HftDjBvRArFoSnGcvxwSCN7rok5PYZtK2shckWBE5inY
+
+# Run Market 1 validation
+npx tsx scripts/ballast/ballast-validate-market1.ts
+
+# Run Market 2 freight rate simulation
+npx tsx scripts/ballast/ballast-freight-simulation.ts
+```
+
+---
+
+# Percolator CLI — Protocol Documentation
+
+Command-line interface for interacting with the percolator perpetuals protocol on Solana.
 
 ## Related Repositories
 
