@@ -1,6 +1,6 @@
-# percolator-cli
+# ballast-percolator-cli
 
-Command-line interface for interacting with the Percolator perpetuals protocol on Solana.
+Command-line interface for interacting with the Ballast perpetuals protocol on Solana.
 
 ## Related Repositories
 
