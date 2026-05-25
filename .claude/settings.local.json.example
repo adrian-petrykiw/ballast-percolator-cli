@@ -1,0 +1,66 @@
+// .claude/settings.local.json.example
+//
+// This is a TEMPLATE. Copy to .claude/settings.local.json and edit. The real
+// file is gitignored — never commit it.
+//
+// This file is NOT loaded by Claude Code (only settings.local.json is). It
+// exists purely as a reference so contributors know what knobs are available.
+//
+// PROJECT-WIDE POLICY lives in .claude/settings.json (committed). Anything you
+// add here merges with — or in some cases overrides — that policy, for you
+// only on this machine.
+//
+// SECURITY:
+//   - Never put secrets, API keys, or keypair material in this file.
+//   - Do NOT add patterns to "permissions.allow" that would match state-
+//     mutating commands. The PreToolUse hook
+//     (.claude/hooks/block-mutating-commands.mjs) will block them regardless,
+//     but adding such patterns is a code smell and a sign you're trying to
+//     bypass the workflow rule.
+//   - Do NOT add "sandbox.autoAllowBashIfSandboxed: true". The committed
+//     policy is allowlist-first (autoAllowBashIfSandboxed: false). Flipping
+//     it true on your machine reverts you to the pre-Phase-0 permission model
+//     and is not supported.
+//
+// Strip the comments before saving as JSON — Claude Code's parser does not
+// accept JSONC.
+
+{
+  "permissions": {
+    // Bash patterns you've personally pre-approved (auto-execute without
+    // prompting). Project-wide allows are in committed settings.json; add
+    // here only for things specific to your workflow.
+    "allow": [
+      // "Bash(docker ps)",
+      // "Bash(docker logs *)",
+      // "Bash(open *)"           // macOS: open files/URLs in default app
+    ],
+
+    // Patterns you want to hard-deny on your machine in addition to the
+    // committed denies. Useful if you want to be extra strict locally.
+    "deny": [
+      // "Bash(open https://*)"   // example: prevent the agent from opening URLs
+    ]
+  },
+
+  // Per-developer env vars passed to tool invocations. Never put secrets
+  // here — use your shell environment instead.
+  "env": {
+    // "BALLAST_LOG_LEVEL": "debug"
+  },
+
+  // Per-developer hooks. Useful for personal niceties like desktop
+  // notifications when the agent finishes a turn.
+  "hooks": {
+    // "Stop": [
+    //   {
+    //     "hooks": [
+    //       {
+    //         "type": "command",
+    //         "command": "osascript -e 'display notification \"Claude done\" with title \"Ballast\"'"
+    //       }
+    //     ]
+    //   }
+    // ]
+  }
+}
