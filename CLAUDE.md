@@ -31,6 +31,26 @@ This repo is a fork of `aeyakovenko/percolator-cli` extended with CargoBill-spec
 
 **Why:** Claude runs in a sandbox without credentials for git pushes / `gh` API / on-chain signers, and the user wants to review every state-changing action before it lands. Don't ask permission per command — emit the block, wait for the user to run it, move on.
 
+**Enforcement:** This rule is enforced by `.claude/hooks/block-mutating-commands.mjs` (PreToolUse hook on the Bash tool). Mutating commands return a structured `permissionDecision: "deny"` to Claude Code, which bypasses `--dangerously-skip-permissions` mode by design. The hook recurses into `bash -c`, `sh -c`, `env`, `nice`, `xargs`, `sudo` wrappers and quote-aware-splits pipelines so `cd subdir && git push` and `bash -c "git push"` are also caught. Every denial is logged to `~/.cache/ballast/events.jsonl` as `event_type: "GUARDRAIL_DECISION"`. There is no override flag at this layer.
+
+---
+
+## Permission Model
+
+This repo operates under **allowlist-first** for bash commands. Concretely:
+
+- `.claude/settings.json` `permissions.allow` lists ~150 patterns covering normal dev work (filesystem read, git read + targeted staging, cargo build/test, pnpm test/build, npx tsx, solana read-only queries, gh read-only, common system tools). These auto-execute without prompting.
+- `.claude/settings.json` `permissions.deny` hard-blocks specific catastrophic forms (`solana program deploy*`, `spl-token transfer*`, `git push --force*`, install commands, `mainnet` substring, etc.) — these cannot be approved even at a prompt.
+- `.claude/hooks/block-mutating-commands.mjs` (PreToolUse) handles complex policy that can't be expressed as globs (tokenization, recursion, conditional matching, eval-escape-hatch detection, `rm -rf <root>` protection, `git -c <dangerous-key>=`).
+- Anything not matching `allow`, `deny`, or the hook **prompts the user**. This is the allowlist-first default.
+- `sandbox.autoAllowBashIfSandboxed: false` in committed settings enforces this. Any developer who flips it `true` in their local `settings.local.json` reverts to the pre-Phase-0 permission model and is on their own.
+
+This model is non-negotiable for any repo touching mainnet keys, mainnet RPC, or production data. It also fits the devnet POC because the same patterns travel to mainnet without changes.
+
+When the agent needs a new command pattern that isn't allowlisted, the prompt will surface it. Promote frequently-used patterns to committed `permissions.allow`; keep per-developer experimental patterns in `settings.local.json`.
+
+Supply-chain controls (npm/cargo dep trust, postinstall script blocking, SBOM generation, Socket.dev) are tracked separately in [`docs/supply-chain-hardening.md`](docs/supply-chain-hardening.md).
+
 ---
 
 ## Upstream: Percolator CLI
@@ -232,6 +252,7 @@ Each phase has numbered success criteria (SC-0.1 through SC-0.10, SC-1.1 through
 - `ballast-config.json` stores PUBLIC addresses only — never private keys
 - Matcher allowlist contains PUBLIC keys only
 - NEVER reference mainnet RPC URLs or deploy to mainnet
+- See [`docs/supply-chain-hardening.md`](docs/supply-chain-hardening.md) for the npm/cargo supply-chain controls (planned)
 
 ## Event Logging
 
@@ -239,13 +260,15 @@ All state-changing operations log to `~/.cache/ballast/events.jsonl`:
 ```json
 {
   "timestamp": "ISO-8601",
-  "event_type": "MARKET_DEPLOY | USER_INIT | DEPOSIT | WITHDRAW | TRADE | CRANK | LIQUIDATION | ORACLE_PUSH | STATE_SNAPSHOT",
+  "event_type": "MARKET_DEPLOY | USER_INIT | DEPOSIT | WITHDRAW | TRADE | CRANK | LIQUIDATION | ORACLE_PUSH | STATE_SNAPSHOT | INCIDENT | GUARDRAIL_DECISION",
   "tx_signature": "base58 signature",
   "slab": "slab pubkey",
   "actor": "wallet pubkey",
   "details": { ... }
 }
 ```
+
+`INCIDENT` events are appended during the response loop documented in [`docs/runbook.md`](docs/runbook.md). `GUARDRAIL_DECISION` events are appended automatically by `.claude/hooks/block-mutating-commands.mjs` on every block.
 
 ## Testing
 
