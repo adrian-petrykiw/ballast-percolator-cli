@@ -36,6 +36,8 @@ Tiers 1 and 2 are complete. The following controls are active in the repo.
 
 ### Accepted vulnerabilities
 
+#### npm (`audit-allowlist.json`)
+
 Seven known-unfixable high-severity advisories are allowlisted in `audit-allowlist.json`. Each entry requires explicit re-evaluation when the upstream ecosystem changes.
 
 **`GHSA-3gc7-fjrx-p6mg` — bigint-buffer Buffer Overflow (high)**
@@ -55,6 +57,37 @@ Seven known-unfixable high-severity advisories are allowlisted in `audit-allowli
 - Upgrade blocked: `pnpm.overrides` cannot force peer dependency resolution. `@zodios/core@10.9.6` resolves axios@1.13.2 from its peer dep context; pnpm does not substitute overrides into peer dep slots. This is confirmed — the override entry was added then removed after verifying it produced no change in the lockfile.
 - Accepted: all five exploits require either attacker-controlled server responses, an existing prototype pollution precondition, or attacker-controlled axios config. axios is used exclusively by `@pythnetwork/hermes-client` to call the trusted Pyth Hermes oracle (`hermes.pyth.network`). No untrusted user input flows through this path.
 - **Resolution trigger:** Dependabot PR for `@pythnetwork/hermes-client` or `@zodios/core` that resolves axios as a direct dep at `>=1.15.2`. Remove all five GHSAs from `audit-allowlist.json` when they no longer appear in `pnpm audit`.
+
+#### Rust (`programs/ballast-matcher/audit.toml`)
+
+Eight known-unfixable advisories are allowlisted via `[advisories] ignore` in `programs/ballast-matcher/audit.toml`. cargo-audit 0.22.x reads this file automatically from the working directory. All eight trace through `solana-program-test 1.18.26` (a dev-dependency), which is pinned for `cargo-build-sbf` compatibility and cannot be upgraded without breaking the BPF toolchain.
+
+**`RUSTSEC-2024-0344` — curve25519-dalek timing variability in scalar multiplication**
+- Path: `ballast-matcher [dev] → solana-program-test 1.18.26 → ... → curve25519-dalek 3.2.0`
+- No patch in 3.x line; fix requires upgrading to 4.x which Solana 1.18 does not pull.
+- **Resolution trigger:** Solana SDK upgrade that resolves curve25519-dalek ≥4.0.
+
+**`RUSTSEC-2022-0093` — ed25519-dalek oracle attack on batch verification**
+- Path: `ballast-matcher [dev] → solana-program-test 1.18.26 → ... → ed25519-dalek 1.0.1`
+- Requires upgrade to 2.x; Solana 1.18 SDK depends on 1.x.
+- **Resolution trigger:** Solana SDK upgrade that resolves ed25519-dalek ≥2.0.
+
+**`RUSTSEC-2026-0037` — quinn-proto DoS via crafted packet (HIGH 8.7)**
+- Path: `ballast-matcher [dev] → solana-program-test 1.18.26 → solana-quic-client → ... → quinn-proto`
+- **Resolution trigger:** Solana SDK upgrade that resolves a patched quinn-proto.
+
+**`RUSTSEC-2025-0009` — ring AES-GCM-SIV panic on large input**
+- Path: `ballast-matcher [dev] → solana-program-test 1.18.26 → solana-quic-client → ... → ring`
+- **Resolution trigger:** Solana SDK upgrade that resolves a patched ring.
+
+**`RUSTSEC-2026-0099`, `RUSTSEC-2026-0098`, `RUSTSEC-2026-0104` — rustls-webpki (3× advisories)**
+- Path: `ballast-matcher [dev] → solana-program-test 1.18.26 → solana-quic-client → ... → rustls-webpki`
+- Three separate issues: wildcard DNS handling, URI name constraint bypass, CRL validation.
+- **Resolution trigger:** Solana SDK upgrade that resolves a patched rustls-webpki.
+
+**`RUSTSEC-2026-0009` — time crate stack overflow in date parsing (MEDIUM 6.8)**
+- Path: `ballast-matcher [dev] → solana-program-test 1.18.26 → ... → time (old version)`
+- **Resolution trigger:** Solana SDK upgrade that resolves a patched time crate.
 
 ### Release age protection
 
