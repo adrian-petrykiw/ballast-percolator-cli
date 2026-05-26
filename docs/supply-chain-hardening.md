@@ -1,6 +1,6 @@
 # Supply Chain Hardening Plan
 
-> **Status:** PLANNED. Not yet implemented. This is the working backlog for a follow-up commit/PR — owned by the same person who reads it.
+> **Status:** Tier 1 + Tier 2 implemented (2026-05-26, chore/supply-chain-tier1-2). Tier 3–4 remain planned.
 
 ## Why this exists
 
@@ -16,6 +16,55 @@ This is the second-most-important security work after agent guardrails, and it's
 ## Scope
 
 Devnet + (imminent) mainnet. Same machine, same dev workflow. The matcher program will eventually be deployed to mainnet with real fee economics; supply-chain trust failures there have direct financial consequences and reputational consequences that long outlast the bug.
+
+## Implemented — chore/supply-chain-tier1-2 (2026-05-26)
+
+Tiers 1 and 2 are complete. The following controls are active in the repo.
+
+| Control | File(s) | What it does |
+|---|---|---|
+| `ignore-scripts=true` | `.npmrc` | Blocks all postinstall RCE (ua-parser-js / Shai-Hulud attack class) |
+| `pnpm.onlyBuiltDependencies: ["esbuild"]` | `package.json` | Sole postinstall exception — required for tsup's native binary download |
+| `pnpm.overrides` security floor | `package.json` | Forces `protobufjs ^7.5.6`, `rollup ^4.59.0` to patched versions |
+| npm audit gate | `ci.yml`, `audit-allowlist.json` | `pnpm audit --json` filtered at high+critical; known-unfixable advisories allowlisted with documented reasons |
+| cargo audit gate | `ci.yml` | `cargo audit` in `programs/ballast-matcher` |
+| GitHub Actions SHA pinning | `ci.yml` | All action steps pinned to commit SHAs; Dependabot upgrades them weekly |
+| Frozen-lockfile CI gate | `ci.yml` | `pnpm install --frozen-lockfile` enforces reproducible installs |
+| Socket.dev behavioral scanning | `.socketrc` | GitHub App installed; flags new network access, install scripts, obfuscated code on every dep PR |
+| Dependabot version updates + cooldown | `dependabot.yml` | Weekly PRs for npm, cargo, github-actions with release-age cooldowns |
+| Release age protection (3 layers) | `pnpm-workspace.yaml`, `dependabot.yml`, `.socketrc` | See section below |
+
+### Accepted vulnerabilities
+
+Seven known-unfixable high-severity advisories are allowlisted in `audit-allowlist.json`. Each entry requires explicit re-evaluation when the upstream ecosystem changes.
+
+**`GHSA-3gc7-fjrx-p6mg` — bigint-buffer Buffer Overflow (high)**
+- Path: `@pythnetwork/pyth-solana-receiver → @pythnetwork/solana-utils → jito-ts → @solana/web3.js → bigint-buffer`
+- No patch exists (`patched-versions: <0.0.0`). Package is unmaintained.
+- Accepted: devnet POC only; no untrusted binary data parsed through this path.
+- **Resolution trigger:** Dependabot PR for `@pythnetwork/pyth-solana-receiver` that transitively drops `bigint-buffer`. Remove GHSA from `audit-allowlist.json` when advisory no longer appears in `pnpm audit`.
+
+**`GHSA-c2c7-rcm5-vvqj` — picomatch ReDoS (high)**
+- Path: `tsup → tinyglobby → picomatch@4.0.3`
+- Upgrade to `>=4.0.4` blocked: `micromatch@4` in the dep tree declares `picomatch@^2.3.1`; a blanket `pnpm.overrides` entry would force micromatch off its 2.x range, breaking lint-staged and vitest file watching.
+- Accepted: build-tool only; no untrusted user input reaches the glob-matching path.
+- **Resolution trigger:** Dependabot PR for `tsup` or `tinyglobby` that includes `picomatch@^4.0.4` in its own declared spec. Remove GHSA from `audit-allowlist.json` when advisory no longer appears in `pnpm audit`.
+
+**`GHSA-pmwg-cvhr-8vh7`, `GHSA-pf86-5x62-jrwf`, `GHSA-6chq-wfr3-2hj9`, `GHSA-43fc-jf86-j433`, `GHSA-q8qp-cvcw-x6jj` — axios@1.13.2 (5× high)**
+- Path: `@pythnetwork/hermes-client → @zodios/core (peer dep) → axios@1.13.2`
+- Upgrade blocked: `pnpm.overrides` cannot force peer dependency resolution. `@zodios/core@10.9.6` resolves axios@1.13.2 from its peer dep context; pnpm does not substitute overrides into peer dep slots. This is confirmed — the override entry was added then removed after verifying it produced no change in the lockfile.
+- Accepted: all five exploits require either attacker-controlled server responses, an existing prototype pollution precondition, or attacker-controlled axios config. axios is used exclusively by `@pythnetwork/hermes-client` to call the trusted Pyth Hermes oracle (`hermes.pyth.network`). No untrusted user input flows through this path.
+- **Resolution trigger:** Dependabot PR for `@pythnetwork/hermes-client` or `@zodios/core` that resolves axios as a direct dep at `>=1.15.2`. Remove all five GHSAs from `audit-allowlist.json` when they no longer appear in `pnpm audit`.
+
+### Release age protection
+
+Three layers defend against same-day supply-chain attacks where a malicious version is published and a developer's `pnpm install` resolves to it before the community detects it.
+
+1. **pnpm `minimumReleaseAge: 10080`** (`pnpm-workspace.yaml`) — pnpm refuses to resolve any package version published less than 7 days ago during `pnpm install`. Does not affect `pnpm install --frozen-lockfile` (CI). Use `minimumReleaseAgeExclude` for emergency patches that require an immediate new version.
+2. **Dependabot cooldown** (`dependabot.yml`) — npm major versions held for 14 days, minor 7 days, patch 3 days; cargo and github-actions use a 7-day default. Security updates bypass cooldown automatically.
+3. **Socket.dev `recentlyPublished: "warn"`** (`.socketrc`) — PR-level visibility flag for recently published package versions. Warn (not error) to avoid blocking emergency manual patches.
+
+---
 
 ## Implementation backlog (cost-ordered)
 

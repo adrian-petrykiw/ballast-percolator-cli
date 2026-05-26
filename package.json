@@ -44,5 +44,12 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"],
+    "overrides": {
+      "protobufjs": "^7.5.6",
+      "rollup": "^4.59.0"
+    }
   }
 }
