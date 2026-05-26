@@ -1,7 +1,3 @@
-/**
- * Validation module tests
- */
-
 import {
   validatePublicKey,
   validateIndex,
@@ -10,145 +6,123 @@ import {
   validateI64,
   validateI128,
   validateBps,
-  validateU16,
   ValidationError,
-} from "../src/validation.js";
+} from '../src/validation.js';
+import { describe, expect, test } from 'vitest';
 
-function assert(cond: boolean, msg: string): void {
-  if (!cond) throw new Error(`FAIL: ${msg}`);
-}
+describe('validatePublicKey', () => {
+  test('accepts valid pubkeys', () => {
+    const pk = validatePublicKey('11111111111111111111111111111111', '--slab');
+    expect(pk.toBase58()).toBe('11111111111111111111111111111111');
 
-function assertThrows(fn: () => void, expectedMsg: string, testName: string): void {
-  try {
-    fn();
-    throw new Error(`FAIL: ${testName} - expected to throw`);
-  } catch (e) {
-    if (e instanceof Error && e.message.includes(expectedMsg)) {
-      // OK
-    } else if (e instanceof Error && e.message.startsWith("FAIL:")) {
-      throw e;
-    } else {
-      throw new Error(`FAIL: ${testName} - expected "${expectedMsg}" in error, got: ${e}`);
-    }
-  }
-}
+    const pk2 = validatePublicKey('3K1P8KXJHg4Uk2upGiorjjFdSxGxq2sjxrrFaBjZ34D9', '--slab');
+    expect(pk2.toBase58()).toBe('3K1P8KXJHg4Uk2upGiorjjFdSxGxq2sjxrrFaBjZ34D9');
+  });
 
-console.log("Testing validation functions...\n");
+  test('rejects invalid pubkeys', () => {
+    expect(() => validatePublicKey('invalid', '--slab')).toThrow('not a valid base58');
+    expect(() => validatePublicKey('', '--slab')).toThrow('not a valid base58');
+  });
+});
 
-// validatePublicKey tests
-{
-  const pk = validatePublicKey("11111111111111111111111111111111", "--slab");
-  assert(pk.toBase58() === "11111111111111111111111111111111", "valid system pubkey");
+describe('validateIndex', () => {
+  test('accepts valid indices', () => {
+    expect(validateIndex('0', '--idx')).toBe(0);
+    expect(validateIndex('123', '--idx')).toBe(123);
+    expect(validateIndex('65535', '--idx')).toBe(65535);
+  });
 
-  const pk2 = validatePublicKey("3K1P8KXJHg4Uk2upGiorjjFdSxGxq2sjxrrFaBjZ34D9", "--slab");
-  assert(pk2.toBase58() === "3K1P8KXJHg4Uk2upGiorjjFdSxGxq2sjxrrFaBjZ34D9", "valid real pubkey");
+  test('rejects invalid indices', () => {
+    expect(() => validateIndex('-1', '--idx')).toThrow('non-negative');
+    expect(() => validateIndex('65536', '--idx')).toThrow('65535');
+    expect(() => validateIndex('abc', '--idx')).toThrow('not a valid number');
+  });
+});
 
-  assertThrows(
-    () => validatePublicKey("invalid", "--slab"),
-    "not a valid base58",
-    "rejects invalid pubkey"
-  );
+describe('validateAmount', () => {
+  test('accepts valid amounts', () => {
+    expect(validateAmount('0', '--amt')).toBe(0n);
+    expect(validateAmount('1000000000000', '--amt')).toBe(1000000000000n);
+    expect(validateAmount('18446744073709551615', '--amt')).toBe(18446744073709551615n);
+  });
 
-  assertThrows(
-    () => validatePublicKey("", "--slab"),
-    "not a valid base58",
-    "rejects empty string"
-  );
+  test('rejects invalid amounts', () => {
+    expect(() => validateAmount('-100', '--amt')).toThrow('non-negative');
+    expect(() => validateAmount('18446744073709551616', '--amt')).toThrow('u64 max');
+    expect(() => validateAmount('abc', '--amt')).toThrow('not a valid number');
+  });
+});
 
-  console.log("✓ validatePublicKey");
-}
+describe('validateU128', () => {
+  test('accepts valid u128 values', () => {
+    expect(validateU128('0', '--val')).toBe(0n);
+    const u128Max = '340282366920938463463374607431768211455';
+    expect(validateU128(u128Max, '--val')).toBe(340282366920938463463374607431768211455n);
+  });
 
-// validateIndex tests
-{
-  assert(validateIndex("0", "--idx") === 0, "accepts zero");
-  assert(validateIndex("123", "--idx") === 123, "accepts positive");
-  assert(validateIndex("65535", "--idx") === 65535, "accepts u16 max");
+  test('rejects invalid u128 values', () => {
+    expect(() => validateU128('-1', '--val')).toThrow('non-negative');
+    expect(() => validateU128('340282366920938463463374607431768211456', '--val')).toThrow(
+      'u128 max',
+    );
+  });
+});
 
-  assertThrows(() => validateIndex("-1", "--idx"), "non-negative", "rejects negative");
-  assertThrows(() => validateIndex("65536", "--idx"), "65535", "rejects above u16 max");
-  assertThrows(() => validateIndex("abc", "--idx"), "not a valid number", "rejects non-numeric");
+describe('validateI64', () => {
+  test('accepts valid i64 values', () => {
+    expect(validateI64('0', '--val')).toBe(0n);
+    expect(validateI64('1000', '--val')).toBe(1000n);
+    expect(validateI64('-1000', '--val')).toBe(-1000n);
+    expect(validateI64('9223372036854775807', '--val')).toBe(9223372036854775807n);
+    expect(validateI64('-9223372036854775808', '--val')).toBe(-9223372036854775808n);
+  });
 
-  console.log("✓ validateIndex");
-}
+  test('rejects out-of-range i64 values', () => {
+    expect(() => validateI64('9223372036854775808', '--val')).toThrow('i64 max');
+    expect(() => validateI64('-9223372036854775809', '--val')).toThrow('i64 min');
+  });
+});
 
-// validateAmount tests
-{
-  assert(validateAmount("0", "--amt") === 0n, "accepts zero");
-  assert(validateAmount("1000000000000", "--amt") === 1000000000000n, "accepts large");
-  assert(validateAmount("18446744073709551615", "--amt") === 18446744073709551615n, "accepts u64 max");
+describe('validateI128', () => {
+  test('accepts valid i128 values', () => {
+    expect(validateI128('0', '--size')).toBe(0n);
+    expect(validateI128('500', '--size')).toBe(500n);
+    expect(validateI128('-500', '--size')).toBe(-500n);
+    const i128Max = '170141183460469231731687303715884105727';
+    expect(validateI128(i128Max, '--size')).toBe(170141183460469231731687303715884105727n);
+    const i128Min = '-170141183460469231731687303715884105728';
+    expect(validateI128(i128Min, '--size')).toBe(-170141183460469231731687303715884105728n);
+  });
 
-  assertThrows(() => validateAmount("-100", "--amt"), "non-negative", "rejects negative");
-  assertThrows(() => validateAmount("18446744073709551616", "--amt"), "u64 max", "rejects above max");
-  assertThrows(() => validateAmount("abc", "--amt"), "not a valid number", "rejects non-numeric");
+  test('rejects out-of-range i128 values', () => {
+    expect(() => validateI128('170141183460469231731687303715884105728', '--size')).toThrow(
+      'i128 max',
+    );
+    expect(() => validateI128('-170141183460469231731687303715884105729', '--size')).toThrow(
+      'i128 min',
+    );
+  });
+});
 
-  console.log("✓ validateAmount");
-}
+describe('validateBps', () => {
+  test('accepts valid bps values', () => {
+    expect(validateBps('0', '--bps')).toBe(0);
+    expect(validateBps('10000', '--bps')).toBe(10000);
+    expect(validateBps('5000', '--bps')).toBe(5000);
+  });
 
-// validateU128 tests
-{
-  assert(validateU128("0", "--val") === 0n, "accepts zero");
-  const u128Max = "340282366920938463463374607431768211455";
-  assert(validateU128(u128Max, "--val") === 340282366920938463463374607431768211455n, "accepts u128 max");
+  test('rejects invalid bps values', () => {
+    expect(() => validateBps('-1', '--bps')).toThrow('non-negative');
+    expect(() => validateBps('10001', '--bps')).toThrow('10000');
+  });
+});
 
-  assertThrows(() => validateU128("-1", "--val"), "non-negative", "rejects negative");
-  assertThrows(() => validateU128("340282366920938463463374607431768211456", "--val"), "u128 max", "rejects above max");
-
-  console.log("✓ validateU128");
-}
-
-// validateI64 tests
-{
-  assert(validateI64("0", "--val") === 0n, "accepts zero");
-  assert(validateI64("1000", "--val") === 1000n, "accepts positive");
-  assert(validateI64("-1000", "--val") === -1000n, "accepts negative");
-  assert(validateI64("9223372036854775807", "--val") === 9223372036854775807n, "accepts i64 max");
-  assert(validateI64("-9223372036854775808", "--val") === -9223372036854775808n, "accepts i64 min");
-
-  assertThrows(() => validateI64("9223372036854775808", "--val"), "i64 max", "rejects above max");
-  assertThrows(() => validateI64("-9223372036854775809", "--val"), "i64 min", "rejects below min");
-
-  console.log("✓ validateI64");
-}
-
-// validateI128 tests
-{
-  assert(validateI128("0", "--size") === 0n, "accepts zero");
-  assert(validateI128("500", "--size") === 500n, "accepts positive");
-  assert(validateI128("-500", "--size") === -500n, "accepts negative");
-
-  const i128Max = "170141183460469231731687303715884105727";
-  assert(validateI128(i128Max, "--size") === 170141183460469231731687303715884105727n, "accepts i128 max");
-
-  const i128Min = "-170141183460469231731687303715884105728";
-  assert(validateI128(i128Min, "--size") === -170141183460469231731687303715884105728n, "accepts i128 min");
-
-  assertThrows(() => validateI128("170141183460469231731687303715884105728", "--size"), "i128 max", "rejects above max");
-  assertThrows(() => validateI128("-170141183460469231731687303715884105729", "--size"), "i128 min", "rejects below min");
-
-  console.log("✓ validateI128");
-}
-
-// validateBps tests
-{
-  assert(validateBps("0", "--bps") === 0, "accepts zero");
-  assert(validateBps("10000", "--bps") === 10000, "accepts 100%");
-  assert(validateBps("5000", "--bps") === 5000, "accepts 50%");
-
-  assertThrows(() => validateBps("-1", "--bps"), "non-negative", "rejects negative");
-  assertThrows(() => validateBps("10001", "--bps"), "10000", "rejects above 100%");
-
-  console.log("✓ validateBps");
-}
-
-// ValidationError tests
-{
-  const err = new ValidationError("--amount", "must be positive");
-  assert(err.message.includes("--amount"), "error includes field");
-  assert(err.message.includes("must be positive"), "error includes message");
-  assert(err.name === "ValidationError", "error has correct name");
-  assert(err.field === "--amount", "error has field property");
-
-  console.log("✓ ValidationError");
-}
-
-console.log("\n✅ All validation tests passed!");
+describe('ValidationError', () => {
+  test('has correct properties', () => {
+    const err = new ValidationError('--amount', 'must be positive');
+    expect(err.message).toContain('--amount');
+    expect(err.message).toContain('must be positive');
+    expect(err.name).toBe('ValidationError');
+    expect(err.field).toBe('--amount');
+  });
+});
