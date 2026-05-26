@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "issueRules": {
+    "installScripts": "error",
+    "obfuscatedFiles": "error",
+    "suspiciousPackage": "error",
+    "networkAccess": "warn",
+    "environmentVariableAccess": "warn",
+    "filesystemAccess": "warn",
+    "recentlyPublished": "warn"
+  }
+}
