@@ -23,7 +23,7 @@ solana-program = "~1.18"
 # cdylib build. Versions track our `solana-program = "~1.18"` pin so the matcher
 # and the harness compile against the same on-chain ABI surface.
 solana-program-test = "~1.18"
-solana-sdk = "~1.18"
+solana-sdk = "~2.1"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 
 [profile.release]
