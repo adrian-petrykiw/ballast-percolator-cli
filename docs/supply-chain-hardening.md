@@ -69,6 +69,8 @@ Fifteen known-unfixable advisories are allowlisted in `audit-allowlist.json` (14
 
 Eight known-unfixable advisories are allowlisted via `[advisories] ignore` in `programs/ballast-matcher/audit.toml`. cargo-audit 0.22.x reads this file automatically from the working directory. All eight trace through `solana-program-test 1.18.26` (a dev-dependency), which is pinned for `cargo-build-sbf` compatibility and cannot be upgraded without breaking the BPF toolchain.
 
+> **cargo-audit tool pin.** CI installs the audit tool itself with `cargo install cargo-audit --version 0.22.2 --locked --force` (see `.github/workflows/ci.yml`). The version is pinned for reproducibility (no silent pull of "latest" from crates.io each run), `--locked` uses cargo-audit's own vetted lockfile, and `--force` overwrites any cached `~/.cargo/bin` binary so a poisoned cache is never trusted. Dependabot does **not** track this CLI-arg version — bump it manually when a new cargo-audit release is desired.
+
 **`RUSTSEC-2024-0344` — curve25519-dalek timing variability in scalar multiplication**
 - Path: `ballast-matcher [dev] → solana-program-test 1.18.26 → ... → curve25519-dalek 3.2.0`
 - No patch in 3.x line; fix requires upgrading to 4.x which Solana 1.18 does not pull.

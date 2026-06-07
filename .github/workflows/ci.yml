@@ -77,7 +77,13 @@ jobs:
           restore-keys: ${{ runner.os }}-cargo-
 
       - name: Install cargo-audit
-        run: cargo install cargo-audit --locked
+        # Pinned + --locked + --force, deliberately:
+        #   --version: reproducible; no silent pull of "latest" from crates.io each run
+        #   --locked:  uses cargo-audit's own shipped Cargo.lock (vetted dep set)
+        #   --force:   overwrites any cached ~/.cargo/bin binary so a poisoned cache
+        #              is never trusted, and avoids the "binary already exists" error
+        # The pin needs a manual bump over time (Dependabot does not track CLI args).
+        run: cargo install cargo-audit --version 0.22.2 --locked --force
 
       - name: Audit Rust dependencies
         run: |
