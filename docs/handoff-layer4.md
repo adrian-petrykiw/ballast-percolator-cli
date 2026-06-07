@@ -43,11 +43,9 @@ Additional fixes landed in follow-up commits on the same PR (cargo-audit CI fail
 
 - **GitHub → Settings → Branches → master protection → Required status checks → add `ci`** (one-time manual step if not yet done, cannot be done via gh CLI without admin token)
 
-### Step 2 — Create rubric branch and doc (30 min)
+### Step 2 — Write rubric doc on chore/tooling-rubric (30 min)
 
-```bash
-git checkout dev && git pull && git checkout -b chore/tooling-rubric
-```
+Branch `chore/tooling-rubric` already exists and is checked out. Skip branch creation.
 
 Create `docs/claude-setup-rubric.md` — **Option C (chosen):** a reusable 6-layer checklist for setting up a new Claude Code project, with the Ballast implementation as the worked example for each layer. Not Ballast-specific — general enough to use on the next CargoBill repo.
 
@@ -123,7 +121,8 @@ We are continuing a multi-session tooling hardening effort on ballast-percolator
 
 Current state:
 - Branch `chore/supply-chain-tier1-2` is merged to `dev` as PR #7 (commit `2b174b6`) — Step 1 DONE
-- Next work: create `chore/tooling-rubric` branch from dev, write `docs/claude-setup-rubric.md` (Option C: 6-layer general checklist + Ballast worked example), PR → dev, then final dev → master PR
+- Branch `chore/tooling-rubric` already exists and is checked out — do NOT try to create it
+- Next work: write `docs/claude-setup-rubric.md` on `chore/tooling-rubric` (Option C: 6-layer general checklist + Ballast worked example), PR → dev, then final dev → master PR
 - See `docs/handoff-layer4.md` Step 2 for the rubric structure
 
 Do not ask clarifying questions. Confirm what's merged, then proceed with the rubric.
