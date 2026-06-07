@@ -1,8 +1,8 @@
 # Handoff: Tooling Hardening — Layer 4 (Rubric + Final PRs)
 
-**Branch at handoff:** `chore/supply-chain-tier1-2` (commit pending — see kickoff prompt)
+**Branch at handoff:** `chore/supply-chain-tier1-2` — **merged to dev** (PR #7, commit `2b174b6`)
 **Date:** 2026-05-26
-**Preceding session summary:** supply-chain-tier1-2 branch complete, audit gate passes locally.
+**Preceding session summary:** supply-chain-tier1-2 branch complete and merged to dev. Cargo-audit CI required a follow-up fix — config auto-discovery was not applying `audit.toml`; resolved by (a) moving config to `.cargo/audit.toml` (canonical location) and (b) passing explicit `--ignore` flags in `ci.yml`. All CI checks green on merge.
 
 ---
 
@@ -25,16 +25,23 @@ All 9 files for `chore/supply-chain-tier1-2` are written and verified:
 **Audit gate verified locally:** 0 violations after filter.
 **`pnpm build` + `pnpm test` (68/68):** green.
 
+Additional fixes landed in follow-up commits on the same PR (cargo-audit CI failure):
+
+| File | Change |
+|---|---|
+| `.github/workflows/ci.yml` | Added explicit `--ignore RUSTSEC-*` flags to `cargo audit` step |
+| `programs/ballast-matcher/.cargo/audit.toml` | Renamed from `audit.toml` → `.cargo/audit.toml` (cargo-audit canonical location); content unchanged |
+| `docs/supply-chain-hardening.md` | Added Rust vulnerability subsection with all 8 RUSTSEC advisory paths |
+
 ---
 
 ## What the next session needs to do
 
-### Step 1 — Confirm supply-chain PR merged and CI green
+### Step 1 — DONE ✅
 
-The commit/push/PR commands were emitted at the end of the previous session. Confirm:
-- `chore/supply-chain-tier1-2` PR is merged to `dev`
-- CI job `ci` passed (audit, lint, typecheck, test, build, cargo-audit)
-- **GitHub → Settings → Branches → master protection → Required status checks → add `ci`** (one-time manual step, cannot be done via gh CLI without admin token)
+`chore/supply-chain-tier1-2` merged to **dev** as PR #7 (commit `2b174b6`). CI green.
+
+- **GitHub → Settings → Branches → master protection → Required status checks → add `ci`** (one-time manual step if not yet done, cannot be done via gh CLI without admin token)
 
 ### Step 2 — Create rubric branch and doc (30 min)
 
@@ -102,6 +109,7 @@ Update `~/.claude/projects/-Users-ap-Documents-GitHub-ballast-percolator-cli/mem
 - **minimumReleaseAge in pnpm-workspace.yaml** — v10.16+ feature; 10080 minutes = 7 days; only affects `pnpm install`, not `--frozen-lockfile`
 - **ESLint parserOptions.project** (NOT projectService) — locked in prior session; projectService is v8.x only
 - **onlyBuiltDependencies: ["esbuild"] only** — esbuild needs postinstall for tsup native binary; no other packages in this list
+- **cargo-audit config: use `--ignore` flags in CI + `.cargo/audit.toml`** — `audit.toml` in the crate root is not reliably auto-discovered by cargo-audit 0.22.x; explicit `--ignore` flags in `ci.yml` are the authoritative gate; `.cargo/audit.toml` serves as local dev fallback and documentation
 
 ---
 
@@ -114,8 +122,7 @@ Paste this verbatim at the start of the next Claude Code conversation in this re
 We are continuing a multi-session tooling hardening effort on ballast-percolator-cli. Read the memory file at `~/.claude/projects/-Users-ap-Documents-GitHub-ballast-percolator-cli/memory/tooling-hardening-session-state.md` and `docs/handoff-layer4.md` before doing anything.
 
 Current state:
-- Branch `chore/supply-chain-tier1-2` should be merged to `dev` (confirm with `git log dev --oneline -5`)
-- CI should be green (confirm with `gh pr list --state merged --base dev`)
+- Branch `chore/supply-chain-tier1-2` is merged to `dev` as PR #7 (commit `2b174b6`) — Step 1 DONE
 - Next work: create `chore/tooling-rubric` branch from dev, write `docs/claude-setup-rubric.md` (Option C: 6-layer general checklist + Ballast worked example), PR → dev, then final dev → master PR
 - See `docs/handoff-layer4.md` Step 2 for the rubric structure
 
