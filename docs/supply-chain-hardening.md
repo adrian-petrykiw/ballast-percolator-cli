@@ -1,6 +1,6 @@
 # Supply Chain Hardening Plan
 
-> **Status:** Tier 1 + Tier 2 implemented (2026-05-26, chore/supply-chain-tier1-2). Tier 3–4 remain planned.
+> **Status:** Tier 1 + Tier 2 implemented (2026-05-26, chore/supply-chain-tier1-2) — this **is the security floor and it is complete.** Tiers 3–4 are deferred **by decision, not omission** (reviewed 2026-06-07): Tier 3 is compliance/audit readiness, Tier 4 is enterprise infrastructure — neither is an open security gap. See [Deferral decision — Tiers 3 & 4](#deferral-decision-for-tiers-3-and-4) for the explicit revisit triggers.
 
 ## Why this exists
 
@@ -107,6 +107,35 @@ Three layers defend against same-day supply-chain attacks where a malicious vers
 3. **Socket.dev `recentlyPublished: "warn"`** (`.socketrc`) — PR-level visibility flag for recently published package versions. Warn (not error) to avoid blocking emergency manual patches.
 
 ---
+
+## Deferral decision for Tiers 3 and 4
+
+_Reviewed 2026-06-07._ Tier 1 + Tier 2 is the **security floor** and is complete. Tiers 3 and 4 are
+deferred **deliberately** — and deferring them does **not** leave an open security
+gap. Do not mistake an unimplemented tier here for a known hole.
+
+- **Tier 3 is compliance/audit readiness, not security.** On this devnet POC every
+  Tier 3 item is either pure compliance (SBOM), overlaps a control we already have
+  (`cargo deny` advisories ≈ `cargo audit`), or is already mitigated by the
+  human-install gate (Layer-1 hook blocks agent installs) + `minimumReleaseAge` +
+  `--frozen-lockfile` (registry pin, `cargo deny [sources]`). It closes essentially
+  no gap that Tier 1+2 left open.
+- **Tier 4 is enterprise infrastructure with real dev-workflow cost.** `cargo vet`
+  slows every dependency change; an internal mirror and vendoring are org-level
+  infra. Premature for a single POC repo, and a net drag on active development.
+
+### Revisit triggers (when deferral ends)
+
+| Trigger | Action |
+|---|---|
+| Compliance process begins (SOC2 / ISO 27001 / customer security questionnaire) | Execute **Tier 3 in full** — SBOM + `cargo deny` + registry pin — as *compliance readiness*. Do it once, completely, not piecemeal. |
+| First mainnet code path / real keys land | Tier 3 becomes **mandatory**; evaluate Tier 4 **case-by-case** (likely `cargo deny [sources]` lock + vendoring the few most-critical Solana crates; `cargo vet` + internal mirror only with org capacity). |
+
+Until a trigger fires, the higher-leverage supply-chain work is (a) keeping deps
+current via the Dependabot backlog (stale versions are the #1 attack vector) and
+(b) replicating Tier 1+2 to other repos (see
+[`claude-setup-rubric.md`](claude-setup-rubric.md) +
+[`security-baseline-starter-kit.md`](security-baseline-starter-kit.md)).
 
 ## Implementation backlog (cost-ordered)
 
@@ -217,6 +246,10 @@ updates:
 
 ### Tier 3 — defense in depth, moderate cost
 
+> **Deferred by decision** — these are compliance/audit-readiness items, **not** open
+> security gaps. See [Deferral decision](#deferral-decision-for-tiers-3-and-4)
+> for the triggers that should make you implement the full tier.
+
 #### 8. `cargo deny` for license + advisory enforcement
 
 Add `deny.toml` at repo root with policies for advisories, licenses, sources. Run in CI:
@@ -249,6 +282,11 @@ replace-with = "vendored-sources"  # or explicit registry
 **Why.** Blocks typosquat-via-registry-mirror attacks. Forces all deps through the official registries we audit.
 
 ### Tier 4 — enterprise, defer until mainnet shipped
+
+> **Deferred by decision** — enterprise infrastructure with real dev-workflow cost
+> (`cargo vet` slows every dependency change; mirror + vendoring are org-level infra).
+> Evaluate **case-by-case at mainnet**, not as a block. See
+> [Deferral decision](#deferral-decision-for-tiers-3-and-4).
 
 #### 11. `cargo vet` distributed crate audits
 
@@ -287,11 +325,11 @@ The agent can edit `package.json` and `Cargo.toml`; the human runs install. This
 
 ## Order of implementation
 
-1. **Now (committed in current PR):** Hook denies install commands. This file written for tracking.
-2. **Next commit (separate PR):** Tier 1 — `.npmrc ignore-scripts`, `pnpm audit` + `cargo audit` in CI, Action SHA pinning.
-3. **Within two weeks of #2:** Tier 2 — Socket.dev install, Dependabot config, lockfile CI gate.
-4. **Before any mainnet code path:** Tier 3 — `cargo deny`, SBOM in CI, registry restriction.
-5. **Post-mainnet, ongoing:** Tier 4 — `cargo vet`, internal mirror, vendoring (case-by-case).
+1. ✅ **Done:** Hook denies install commands (Layer-1 guardrail).
+2. ✅ **Done:** Tier 1 — `.npmrc ignore-scripts`, `pnpm audit` + `cargo audit` in CI, Action SHA pinning.
+3. ✅ **Done:** Tier 2 — Socket.dev, Dependabot config, lockfile CI gate.
+4. **Trigger-gated (compliance process begins):** Tier 3 — SBOM, `cargo deny`, registry restriction. Execute in full as compliance readiness; see [Deferral decision](#deferral-decision-for-tiers-3-and-4).
+5. **Trigger-gated (mainnet / real keys):** Tier 3 mandatory; Tier 4 — `cargo vet`, internal mirror, vendoring — evaluated case-by-case.
 
 ## References
 
