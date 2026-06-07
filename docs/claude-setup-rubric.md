@@ -16,6 +16,11 @@ the checklist, then read the Ballast example for the non-obvious decisions
 (marked ⚠️) that are easy to get wrong. A layer is "done" when every checklist
 box is ticked *and* the gate is enforced in CI, not just configured locally.
 
+> **Rolling this out to other repos?** See the companion
+> [`security-baseline-starter-kit.md`](security-baseline-starter-kit.md) — the
+> per-stack translation table (Node / Python / Go / Rust) and the file-by-file
+> extraction plan for turning this blueprint into a copyable baseline.
+
 > Scope note: Ballast is a **devnet-only POC** handling no real funds. Some
 > "accepted risk" decisions below (e.g. allowlisted advisories) are calibrated
 > to that context. The risk calculus tightens for any repo touching mainnet
