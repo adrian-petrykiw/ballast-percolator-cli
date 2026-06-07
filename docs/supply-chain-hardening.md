@@ -38,7 +38,7 @@ Tiers 1 and 2 are complete. The following controls are active in the repo.
 
 #### npm (`audit-allowlist.json`)
 
-Seven known-unfixable high-severity advisories are allowlisted in `audit-allowlist.json`. Each entry requires explicit re-evaluation when the upstream ecosystem changes.
+Fifteen known-unfixable advisories are allowlisted in `audit-allowlist.json` (14 high + 1 critical). Each entry requires explicit re-evaluation when the upstream ecosystem changes. The axios and vitest counts grow over time as new advisories are published against the same pinned versions — `pnpm audit` queries the live GitHub Advisory Database, so the gate can newly fail on an unchanged lockfile and the allowlist must be refreshed (run the CI audit step locally to enumerate any newly-published GHSAs).
 
 **`GHSA-3gc7-fjrx-p6mg` — bigint-buffer Buffer Overflow (high)**
 - Path: `@pythnetwork/pyth-solana-receiver → @pythnetwork/solana-utils → jito-ts → @solana/web3.js → bigint-buffer`
@@ -52,11 +52,18 @@ Seven known-unfixable high-severity advisories are allowlisted in `audit-allowli
 - Accepted: build-tool only; no untrusted user input reaches the glob-matching path.
 - **Resolution trigger:** Dependabot PR for `tsup` or `tinyglobby` that includes `picomatch@^4.0.4` in its own declared spec. Remove GHSA from `audit-allowlist.json` when advisory no longer appears in `pnpm audit`.
 
-**`GHSA-pmwg-cvhr-8vh7`, `GHSA-pf86-5x62-jrwf`, `GHSA-6chq-wfr3-2hj9`, `GHSA-43fc-jf86-j433`, `GHSA-q8qp-cvcw-x6jj` — axios@1.13.2 (5× high)**
+**axios@1.13.2 (12× high)** — `GHSA-pmwg-cvhr-8vh7`, `GHSA-pf86-5x62-jrwf`, `GHSA-6chq-wfr3-2hj9`, `GHSA-43fc-jf86-j433`, `GHSA-q8qp-cvcw-x6jj`, `GHSA-pjwm-pj3p-43mv`, `GHSA-3g43-6gmg-66jw`, `GHSA-35jp-ww65-95wh`, `GHSA-hfxv-24rg-xrqf`, `GHSA-777c-7fjr-54vf`, `GHSA-p92q-9vqr-4j8v`, `GHSA-j5f8-grm9-p9fc`
 - Path: `@pythnetwork/hermes-client → @zodios/core (peer dep) → axios@1.13.2`
 - Upgrade blocked: `pnpm.overrides` cannot force peer dependency resolution. `@zodios/core@10.9.6` resolves axios@1.13.2 from its peer dep context; pnpm does not substitute overrides into peer dep slots. This is confirmed — the override entry was added then removed after verifying it produced no change in the lockfile.
-- Accepted: all five exploits require either attacker-controlled server responses, an existing prototype pollution precondition, or attacker-controlled axios config. axios is used exclusively by `@pythnetwork/hermes-client` to call the trusted Pyth Hermes oracle (`hermes.pyth.network`). No untrusted user input flows through this path.
-- **Resolution trigger:** Dependabot PR for `@pythnetwork/hermes-client` or `@zodios/core` that resolves axios as a direct dep at `>=1.15.2`. Remove all five GHSAs from `audit-allowlist.json` when they no longer appear in `pnpm audit`.
+- Accepted: every advisory in this set requires either attacker-controlled server responses, an existing prototype pollution precondition, attacker-controlled axios config, or a proxy with credentials. axios is used exclusively by `@pythnetwork/hermes-client` to call the trusted Pyth Hermes oracle (`hermes.pyth.network`) over plain GETs with static config and no proxy. No untrusted user input flows through this path.
+- These are a chain of overlapping prototype-pollution / proxy / NO_PROXY advisories against the same pinned axios@1.13.2; the set grew from 5 to 12 between 2026-05-26 and 2026-06-07 with no dependency change. Several are "incomplete fix" follow-ups to CVE-2025-62718.
+- **Resolution trigger:** Dependabot PR for `@pythnetwork/hermes-client` or `@zodios/core` that resolves axios to a fully-patched version. Remove the corresponding GHSAs from `audit-allowlist.json` when they no longer appear in `pnpm audit`.
+
+**`GHSA-5xrq-8626-4rwp` — vitest UI/API server arbitrary file read + RCE (critical)**
+- Affects `vitest@2.1.9` (and `@vitest/coverage-v8`); all versions `<4.1.0` are vulnerable.
+- Exploitable **only** when the Vitest UI/API server is actively listening and reachable, or when running Browser Mode on Windows. CI and lint-staged run headless `vitest run` — no server is bound to a network interface and no browser mode is used. vitest is a devDependency and never ships in the built CLI.
+- Upgrade blocked for now: the fix lands only in `4.1.0`, a major `2.x → 4.x` bump with breaking changes requiring a deliberate migration.
+- **Resolution trigger:** dedicated PR bumping `vitest` + `@vitest/coverage-v8` to `>=4.1.0`. Remove this GHSA from `audit-allowlist.json` when the advisory no longer appears in `pnpm audit`.
 
 #### Rust (`programs/ballast-matcher/audit.toml`)
 
