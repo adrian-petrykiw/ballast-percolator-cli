@@ -1,0 +1,94 @@
+{
+  "allowlist": [
+    {
+      "ghsa": "GHSA-3gc7-fjrx-p6mg",
+      "package": "bigint-buffer",
+      "severity": "high",
+      "reason": "No patch exists (advisory patched-versions: <0.0.0). Path: @pythnetwork/pyth-solana-receiver → @pythnetwork/solana-utils → jito-ts → @solana/web3.js → bigint-buffer. Package is unmaintained. Devnet POC only; no untrusted binary data parsed through this path. Resolution: Dependabot PR for @pythnetwork/pyth-solana-receiver that transitively drops bigint-buffer. Remove this entry when advisory no longer appears in pnpm audit."
+    },
+    {
+      "ghsa": "GHSA-c2c7-rcm5-vvqj",
+      "package": "picomatch",
+      "severity": "high",
+      "reason": "Build-tool only (tsup → tinyglobby → picomatch@4.0.3). Safe upgrade to >=4.0.4 is blocked: micromatch@4 in the dep tree declares picomatch@^2.3.1; a blanket pnpm.overrides entry would force micromatch off its 2.x range, breaking lint-staged and vitest file watching. No untrusted input reaches the glob-matching path. Resolution: Dependabot PR for tsup or tinyglobby that includes picomatch@^4.0.4 in its own declared spec. Remove this entry when advisory no longer appears in pnpm audit."
+    },
+    {
+      "ghsa": "GHSA-pmwg-cvhr-8vh7",
+      "package": "axios",
+      "severity": "high",
+      "reason": "Path: @pythnetwork/hermes-client → @zodios/core (peer dep) → axios@1.13.2. pnpm.overrides cannot force peer dependency resolution — @zodios/core@10.9.6 resolves axios@1.13.2 from its peer context and pnpm does not substitute overrides into peer dep slots. Exploit requires a proxy bypass via RFC 1122 loopback subnets; not applicable — axios is used only for Pyth Hermes oracle calls to trusted endpoints (hermes.pyth.network), never as a general HTTP client behind a proxy or exposed to untrusted user data. Resolution: Dependabot PR for @pythnetwork/hermes-client or @zodios/core that bumps the resolved axios peer to a fully-patched version. Remove this entry when advisory no longer appears in pnpm audit."
+    },
+    {
+      "ghsa": "GHSA-pf86-5x62-jrwf",
+      "package": "axios",
+      "severity": "high",
+      "reason": "Path: @pythnetwork/hermes-client → @zodios/core (peer dep) → axios@1.13.2. pnpm.overrides cannot force peer dependency resolution — see GHSA-pmwg-cvhr-8vh7 reason. Exploit (prototype pollution gadgets enabling response tampering / data exfiltration) requires either attacker-controlled server responses or an existing prototype pollution source; axios here only contacts trusted Pyth Hermes endpoints. Resolution: same as GHSA-pmwg-cvhr-8vh7."
+    },
+    {
+      "ghsa": "GHSA-6chq-wfr3-2hj9",
+      "package": "axios",
+      "severity": "high",
+      "reason": "Path: @pythnetwork/hermes-client → @zodios/core (peer dep) → axios@1.13.2. pnpm.overrides cannot force peer dependency resolution — see GHSA-pmwg-cvhr-8vh7 reason. Exploit (header injection via prototype pollution) requires an existing prototype pollution precondition and custom request headers from untrusted input; not applicable to read-only Pyth oracle calls. Resolution: same as GHSA-pmwg-cvhr-8vh7."
+    },
+    {
+      "ghsa": "GHSA-43fc-jf86-j433",
+      "package": "axios",
+      "severity": "high",
+      "reason": "Path: @pythnetwork/hermes-client → @zodios/core (peer dep) → axios@1.13.2. pnpm.overrides cannot force peer dependency resolution — see GHSA-pmwg-cvhr-8vh7 reason. Exploit (DoS via __proto__ key in mergeConfig) requires attacker-controlled axios config objects; not applicable — config is static in the hermes-client. Resolution: same as GHSA-pmwg-cvhr-8vh7."
+    },
+    {
+      "ghsa": "GHSA-q8qp-cvcw-x6jj",
+      "package": "axios",
+      "severity": "high",
+      "reason": "Path: @pythnetwork/hermes-client → @zodios/core (peer dep) → axios@1.13.2. pnpm.overrides cannot force peer dependency resolution — see GHSA-pmwg-cvhr-8vh7 reason. Exploit (prototype pollution read-side gadgets enabling credential injection / request hijacking) requires existing prototype pollution; not applicable to read-only Pyth oracle calls with static config. Resolution: same as GHSA-pmwg-cvhr-8vh7."
+    },
+    {
+      "ghsa": "GHSA-pjwm-pj3p-43mv",
+      "package": "axios",
+      "severity": "high",
+      "reason": "Path: @pythnetwork/hermes-client → @zodios/core (peer dep) → axios@1.13.2. pnpm.overrides cannot force peer dependency resolution — see GHSA-pmwg-cvhr-8vh7 reason. Vulnerability is a NO_PROXY bypass via IPv4-mapped IPv6 addresses (incomplete fix for CVE-2025-62718); not applicable — axios is used only for Pyth Hermes oracle calls to trusted endpoints (hermes.pyth.network), never behind a proxy or exposed to untrusted user data. Resolution: same as GHSA-pmwg-cvhr-8vh7."
+    },
+    {
+      "ghsa": "GHSA-3g43-6gmg-66jw",
+      "package": "axios",
+      "severity": "high",
+      "reason": "Path: @pythnetwork/hermes-client → @zodios/core (peer dep) → axios@1.13.2. pnpm.overrides cannot force peer dependency resolution — see GHSA-pmwg-cvhr-8vh7 reason. Exploit (credential theft / response hijacking via prototype pollution gadget in config merge) requires attacker-controlled axios config objects or an existing prototype pollution source; not applicable — config is static in the hermes-client and only contacts trusted Pyth endpoints. Resolution: same as GHSA-pmwg-cvhr-8vh7."
+    },
+    {
+      "ghsa": "GHSA-35jp-ww65-95wh",
+      "package": "axios",
+      "severity": "high",
+      "reason": "Path: @pythnetwork/hermes-client → @zodios/core (peer dep) → axios@1.13.2. pnpm.overrides cannot force peer dependency resolution — see GHSA-pmwg-cvhr-8vh7 reason. Exploit (full man-in-the-middle via prototype pollution gadget in config.proxy) requires an attacker-controlled proxy config plus an existing prototype pollution source; axios here uses no proxy and a static config against trusted Pyth endpoints. Resolution: same as GHSA-pmwg-cvhr-8vh7."
+    },
+    {
+      "ghsa": "GHSA-hfxv-24rg-xrqf",
+      "package": "axios",
+      "severity": "high",
+      "reason": "Path: @pythnetwork/hermes-client → @zodios/core (peer dep) → axios@1.13.2. pnpm.overrides cannot force peer dependency resolution — see GHSA-pmwg-cvhr-8vh7 reason. Exploit (ReDoS via cookie name injection) requires attacker-controlled cookie names reaching axios; not applicable — read-only Pyth oracle GETs do not set request cookies from untrusted input. Resolution: same as GHSA-pmwg-cvhr-8vh7."
+    },
+    {
+      "ghsa": "GHSA-777c-7fjr-54vf",
+      "package": "axios",
+      "severity": "high",
+      "reason": "Path: @pythnetwork/hermes-client → @zodios/core (peer dep) → axios@1.13.2. pnpm.overrides cannot force peer dependency resolution — see GHSA-pmwg-cvhr-8vh7 reason. Exploit (DoS via allocation of resources without limits / unbounded response) requires a hostile server returning oversized responses; axios here only contacts trusted hermes.pyth.network. Devnet POC, no availability SLA. Resolution: same as GHSA-pmwg-cvhr-8vh7."
+    },
+    {
+      "ghsa": "GHSA-p92q-9vqr-4j8v",
+      "package": "axios",
+      "severity": "high",
+      "reason": "Path: @pythnetwork/hermes-client → @zodios/core (peer dep) → axios@1.13.2. pnpm.overrides cannot force peer dependency resolution — see GHSA-pmwg-cvhr-8vh7 reason. Exploit (Proxy-Authorization credential leak to origin across HTTP-to-HTTPS redirect) requires use of a proxy with credentials; axios here uses no proxy and no Proxy-Authorization header. Resolution: same as GHSA-pmwg-cvhr-8vh7."
+    },
+    {
+      "ghsa": "GHSA-j5f8-grm9-p9fc",
+      "package": "axios",
+      "severity": "high",
+      "reason": "Path: @pythnetwork/hermes-client → @zodios/core (peer dep) → axios@1.13.2. pnpm.overrides cannot force peer dependency resolution — see GHSA-pmwg-cvhr-8vh7 reason. Exploit (Proxy-Authorization header leaks to redirect target when proxy re-evaluates to a direct connection) requires a proxied request with credentials; axios here uses no proxy. Resolution: same as GHSA-pmwg-cvhr-8vh7."
+    },
+    {
+      "ghsa": "GHSA-5xrq-8626-4rwp",
+      "package": "vitest",
+      "severity": "critical",
+      "reason": "Dev/test-tooling only — vitest@2.1.9 (and @vitest/coverage-v8). Vulnerability allows arbitrary file read + code execution via path traversal, but ONLY when the Vitest UI/API server is actively listening and reachable, or when running Browser Mode on Windows. Not applicable: CI and lint-staged run headless `vitest run` — no UI server is started, nothing is bound to a network interface, and no browser mode is used. Vitest is a devDependency and never ships in the built CLI (tsup output excludes it). First patched version is 4.1.0, a major upgrade (2.x → 4.x) with breaking changes requiring a deliberate migration; deferred. Resolution: bump vitest + @vitest/coverage-v8 to >=4.1.0 in a dedicated migration PR. Remove this entry when advisory no longer appears in pnpm audit."
+    }
+  ]
+}

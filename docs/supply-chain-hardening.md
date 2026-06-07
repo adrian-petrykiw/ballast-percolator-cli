@@ -1,6 +1,6 @@
 # Supply Chain Hardening Plan
 
-> **Status:** PLANNED. Not yet implemented. This is the working backlog for a follow-up commit/PR — owned by the same person who reads it.
+> **Status:** Tier 1 + Tier 2 implemented (2026-05-26, chore/supply-chain-tier1-2). Tier 3–4 remain planned.
 
 ## Why this exists
 
@@ -16,6 +16,97 @@ This is the second-most-important security work after agent guardrails, and it's
 ## Scope
 
 Devnet + (imminent) mainnet. Same machine, same dev workflow. The matcher program will eventually be deployed to mainnet with real fee economics; supply-chain trust failures there have direct financial consequences and reputational consequences that long outlast the bug.
+
+## Implemented — chore/supply-chain-tier1-2 (2026-05-26)
+
+Tiers 1 and 2 are complete. The following controls are active in the repo.
+
+| Control | File(s) | What it does |
+|---|---|---|
+| `ignore-scripts=true` | `.npmrc` | Blocks all postinstall RCE (ua-parser-js / Shai-Hulud attack class) |
+| `pnpm.onlyBuiltDependencies: ["esbuild"]` | `package.json` | Sole postinstall exception — required for tsup's native binary download |
+| `pnpm.overrides` security floor | `package.json` | Forces `protobufjs ^7.5.6`, `rollup ^4.59.0` to patched versions |
+| npm audit gate | `ci.yml`, `audit-allowlist.json` | `pnpm audit --json` filtered at high+critical; known-unfixable advisories allowlisted with documented reasons |
+| cargo audit gate | `ci.yml` | `cargo audit` in `programs/ballast-matcher` |
+| GitHub Actions SHA pinning | `ci.yml` | All action steps pinned to commit SHAs; Dependabot upgrades them weekly |
+| Frozen-lockfile CI gate | `ci.yml` | `pnpm install --frozen-lockfile` enforces reproducible installs |
+| Socket.dev behavioral scanning | `.socketrc` | GitHub App installed; flags new network access, install scripts, obfuscated code on every dep PR |
+| Dependabot version updates + cooldown | `dependabot.yml` | Weekly PRs for npm, cargo, github-actions with release-age cooldowns |
+| Release age protection (3 layers) | `pnpm-workspace.yaml`, `dependabot.yml`, `.socketrc` | See section below |
+
+### Accepted vulnerabilities
+
+#### npm (`audit-allowlist.json`)
+
+Fifteen known-unfixable advisories are allowlisted in `audit-allowlist.json` (14 high + 1 critical). Each entry requires explicit re-evaluation when the upstream ecosystem changes. The axios and vitest counts grow over time as new advisories are published against the same pinned versions — `pnpm audit` queries the live GitHub Advisory Database, so the gate can newly fail on an unchanged lockfile and the allowlist must be refreshed (run the CI audit step locally to enumerate any newly-published GHSAs).
+
+**`GHSA-3gc7-fjrx-p6mg` — bigint-buffer Buffer Overflow (high)**
+- Path: `@pythnetwork/pyth-solana-receiver → @pythnetwork/solana-utils → jito-ts → @solana/web3.js → bigint-buffer`
+- No patch exists (`patched-versions: <0.0.0`). Package is unmaintained.
+- Accepted: devnet POC only; no untrusted binary data parsed through this path.
+- **Resolution trigger:** Dependabot PR for `@pythnetwork/pyth-solana-receiver` that transitively drops `bigint-buffer`. Remove GHSA from `audit-allowlist.json` when advisory no longer appears in `pnpm audit`.
+
+**`GHSA-c2c7-rcm5-vvqj` — picomatch ReDoS (high)**
+- Path: `tsup → tinyglobby → picomatch@4.0.3`
+- Upgrade to `>=4.0.4` blocked: `micromatch@4` in the dep tree declares `picomatch@^2.3.1`; a blanket `pnpm.overrides` entry would force micromatch off its 2.x range, breaking lint-staged and vitest file watching.
+- Accepted: build-tool only; no untrusted user input reaches the glob-matching path.
+- **Resolution trigger:** Dependabot PR for `tsup` or `tinyglobby` that includes `picomatch@^4.0.4` in its own declared spec. Remove GHSA from `audit-allowlist.json` when advisory no longer appears in `pnpm audit`.
+
+**axios@1.13.2 (12× high)** — `GHSA-pmwg-cvhr-8vh7`, `GHSA-pf86-5x62-jrwf`, `GHSA-6chq-wfr3-2hj9`, `GHSA-43fc-jf86-j433`, `GHSA-q8qp-cvcw-x6jj`, `GHSA-pjwm-pj3p-43mv`, `GHSA-3g43-6gmg-66jw`, `GHSA-35jp-ww65-95wh`, `GHSA-hfxv-24rg-xrqf`, `GHSA-777c-7fjr-54vf`, `GHSA-p92q-9vqr-4j8v`, `GHSA-j5f8-grm9-p9fc`
+- Path: `@pythnetwork/hermes-client → @zodios/core (peer dep) → axios@1.13.2`
+- Upgrade blocked: `pnpm.overrides` cannot force peer dependency resolution. `@zodios/core@10.9.6` resolves axios@1.13.2 from its peer dep context; pnpm does not substitute overrides into peer dep slots. This is confirmed — the override entry was added then removed after verifying it produced no change in the lockfile.
+- Accepted: every advisory in this set requires either attacker-controlled server responses, an existing prototype pollution precondition, attacker-controlled axios config, or a proxy with credentials. axios is used exclusively by `@pythnetwork/hermes-client` to call the trusted Pyth Hermes oracle (`hermes.pyth.network`) over plain GETs with static config and no proxy. No untrusted user input flows through this path.
+- These are a chain of overlapping prototype-pollution / proxy / NO_PROXY advisories against the same pinned axios@1.13.2; the set grew from 5 to 12 between 2026-05-26 and 2026-06-07 with no dependency change. Several are "incomplete fix" follow-ups to CVE-2025-62718.
+- **Resolution trigger:** Dependabot PR for `@pythnetwork/hermes-client` or `@zodios/core` that resolves axios to a fully-patched version. Remove the corresponding GHSAs from `audit-allowlist.json` when they no longer appear in `pnpm audit`.
+
+**`GHSA-5xrq-8626-4rwp` — vitest UI/API server arbitrary file read + RCE (critical)**
+- Affects `vitest@2.1.9` (and `@vitest/coverage-v8`); all versions `<4.1.0` are vulnerable.
+- Exploitable **only** when the Vitest UI/API server is actively listening and reachable, or when running Browser Mode on Windows. CI and lint-staged run headless `vitest run` — no server is bound to a network interface and no browser mode is used. vitest is a devDependency and never ships in the built CLI.
+- Upgrade blocked for now: the fix lands only in `4.1.0`, a major `2.x → 4.x` bump with breaking changes requiring a deliberate migration.
+- **Resolution trigger:** dedicated PR bumping `vitest` + `@vitest/coverage-v8` to `>=4.1.0`. Remove this GHSA from `audit-allowlist.json` when the advisory no longer appears in `pnpm audit`.
+
+#### Rust (`programs/ballast-matcher/audit.toml`)
+
+Eight known-unfixable advisories are allowlisted via `[advisories] ignore` in `programs/ballast-matcher/audit.toml`. cargo-audit 0.22.x reads this file automatically from the working directory. All eight trace through `solana-program-test 1.18.26` (a dev-dependency), which is pinned for `cargo-build-sbf` compatibility and cannot be upgraded without breaking the BPF toolchain.
+
+> **cargo-audit tool pin.** CI installs the audit tool itself with `cargo install cargo-audit --version 0.22.2 --locked --force` (see `.github/workflows/ci.yml`). The version is pinned for reproducibility (no silent pull of "latest" from crates.io each run), `--locked` uses cargo-audit's own vetted lockfile, and `--force` overwrites any cached `~/.cargo/bin` binary so a poisoned cache is never trusted. Dependabot does **not** track this CLI-arg version — bump it manually when a new cargo-audit release is desired.
+
+**`RUSTSEC-2024-0344` — curve25519-dalek timing variability in scalar multiplication**
+- Path: `ballast-matcher [dev] → solana-program-test 1.18.26 → ... → curve25519-dalek 3.2.0`
+- No patch in 3.x line; fix requires upgrading to 4.x which Solana 1.18 does not pull.
+- **Resolution trigger:** Solana SDK upgrade that resolves curve25519-dalek ≥4.0.
+
+**`RUSTSEC-2022-0093` — ed25519-dalek oracle attack on batch verification**
+- Path: `ballast-matcher [dev] → solana-program-test 1.18.26 → ... → ed25519-dalek 1.0.1`
+- Requires upgrade to 2.x; Solana 1.18 SDK depends on 1.x.
+- **Resolution trigger:** Solana SDK upgrade that resolves ed25519-dalek ≥2.0.
+
+**`RUSTSEC-2026-0037` — quinn-proto DoS via crafted packet (HIGH 8.7)**
+- Path: `ballast-matcher [dev] → solana-program-test 1.18.26 → solana-quic-client → ... → quinn-proto`
+- **Resolution trigger:** Solana SDK upgrade that resolves a patched quinn-proto.
+
+**`RUSTSEC-2025-0009` — ring AES-GCM-SIV panic on large input**
+- Path: `ballast-matcher [dev] → solana-program-test 1.18.26 → solana-quic-client → ... → ring`
+- **Resolution trigger:** Solana SDK upgrade that resolves a patched ring.
+
+**`RUSTSEC-2026-0099`, `RUSTSEC-2026-0098`, `RUSTSEC-2026-0104` — rustls-webpki (3× advisories)**
+- Path: `ballast-matcher [dev] → solana-program-test 1.18.26 → solana-quic-client → ... → rustls-webpki`
+- Three separate issues: wildcard DNS handling, URI name constraint bypass, CRL validation.
+- **Resolution trigger:** Solana SDK upgrade that resolves a patched rustls-webpki.
+
+**`RUSTSEC-2026-0009` — time crate stack overflow in date parsing (MEDIUM 6.8)**
+- Path: `ballast-matcher [dev] → solana-program-test 1.18.26 → ... → time (old version)`
+- **Resolution trigger:** Solana SDK upgrade that resolves a patched time crate.
+
+### Release age protection
+
+Three layers defend against same-day supply-chain attacks where a malicious version is published and a developer's `pnpm install` resolves to it before the community detects it.
+
+1. **pnpm `minimumReleaseAge: 10080`** (`pnpm-workspace.yaml`) — pnpm refuses to resolve any package version published less than 7 days ago during `pnpm install`. Does not affect `pnpm install --frozen-lockfile` (CI). Use `minimumReleaseAgeExclude` for emergency patches that require an immediate new version.
+2. **Dependabot cooldown** (`dependabot.yml`) — npm major versions held for 14 days, minor 7 days, patch 3 days; cargo and github-actions use a 7-day default. Security updates bypass cooldown automatically.
+3. **Socket.dev `recentlyPublished: "warn"`** (`.socketrc`) — PR-level visibility flag for recently published package versions. Warn (not error) to avoid blocking emergency manual patches.
+
+---
 
 ## Implementation backlog (cost-ordered)
 

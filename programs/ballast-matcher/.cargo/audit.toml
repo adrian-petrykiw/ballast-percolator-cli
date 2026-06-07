@@ -1,0 +1,50 @@
+[advisories]
+# All entries below are transitive deps of solana-program-test 1.18.26, which
+# ballast-matcher pins for cargo-build-sbf compatibility. Upgrading past Solana
+# 1.18.x breaks the BPF toolchain. None of these vulnerabilities are reachable
+# through ballast-matcher's runtime paths — the program is test scaffolding only
+# (solana-program-test is a dev/test dependency, not a deployed program dep).
+#
+# Resolution trigger for every entry: a Dependabot or manual PR that upgrades
+# solana-program-test (and the broader solana-sdk pin) to a version that
+# transitively resolves a patched dep. Remove the RUSTSEC entry when
+# `cargo audit` no longer reports it.
+ignore = [
+    # RUSTSEC-2024-0344 — curve25519-dalek: timing variability in scalar mul
+    # Path: solana-program-test 1.18.26 → solana-banks-client → ... → curve25519-dalek 3.2.0
+    # No patch in the 3.x line; requires upgrade to 4.x which Solana 1.18 does not use.
+    "RUSTSEC-2024-0344",
+
+    # RUSTSEC-2022-0093 — ed25519-dalek: oracle attack on batch verification
+    # Path: solana-program-test 1.18.26 → ... → ed25519-dalek 1.0.1
+    # Requires upgrade to 2.x; Solana 1.18 SDK depends on 1.x.
+    "RUSTSEC-2022-0093",
+
+    # RUSTSEC-2026-0037 — quinn-proto: DoS via crafted packet (HIGH 8.7)
+    # Path: solana-program-test 1.18.26 → solana-quic-client → ... → quinn-proto
+    # Fix requires quinn-proto upgrade outside Solana 1.18 dep range.
+    "RUSTSEC-2026-0037",
+
+    # RUSTSEC-2025-0009 — ring: AES-GCM-SIV panic on large input
+    # Path: solana-program-test 1.18.26 → solana-quic-client → ... → ring
+    # Ring version pinned by Solana 1.18 toolchain; no upgrade path without
+    # breaking cargo-build-sbf.
+    "RUSTSEC-2025-0009",
+
+    # RUSTSEC-2026-0099 — rustls-webpki: wildcard DNS name handling issue
+    # Path: solana-program-test 1.18.26 → solana-quic-client → ... → rustls-webpki
+    "RUSTSEC-2026-0099",
+
+    # RUSTSEC-2026-0098 — rustls-webpki: URI name constraint bypass
+    # Path: solana-program-test 1.18.26 → solana-quic-client → ... → rustls-webpki
+    "RUSTSEC-2026-0098",
+
+    # RUSTSEC-2026-0104 — rustls-webpki: CRL validation issue
+    # Path: solana-program-test 1.18.26 → solana-quic-client → ... → rustls-webpki
+    "RUSTSEC-2026-0104",
+
+    # RUSTSEC-2026-0009 — time: stack overflow in date parsing (MEDIUM 6.8)
+    # Path: solana-program-test 1.18.26 → ... → time crate (old version)
+    # Pinned by Solana 1.18 transitive dep chain.
+    "RUSTSEC-2026-0009",
+]
