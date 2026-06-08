@@ -6,7 +6,7 @@ Full reference for the upstream Percolator CLI that Ballast extends. Keep this d
 
 ## Upstream: Percolator CLI
 
-TypeScript CLI for interacting with the Percolator perpetuals protocol on Solana. Targets **v12.21+** of the on-chain program exclusively (v12.20 is deprecated and its encoders have been removed). Built with Commander.js, uses ESM modules, requires **Node 20+** and **pnpm**.
+TypeScript CLI for interacting with the Percolator perpetuals protocol on Solana. Targets **v12.21+** of the on-chain program exclusively (v12.20 is deprecated and its encoders have been removed). Built with Commander.js, uses ESM modules, requires **Node 22+** and **pnpm**.
 
 ### All commands
 
