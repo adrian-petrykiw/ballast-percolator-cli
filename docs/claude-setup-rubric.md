@@ -7,14 +7,23 @@ doing damage, end with the documentation that lets the next human (or agent)
 operate the repo safely.
 
 This document is **general-purpose** — use it as the starting checklist for any
-new CargoBill repo. Each layer pairs the *what/why* with the **Ballast worked
+new CargoBill repo. Each layer pairs the _what/why_ with the **Ballast worked
 example**: the concrete decision made in `ballast-percolator-cli`, so you can
 copy the pattern and see the trade-offs that were already settled.
+
+This rubric covers **security** — what stops an agent or a dependency from doing
+harm. Its companion, [`claude-repo-scaffold.md`](claude-repo-scaffold.md),
+covers the **operating model** — how a repo is _structured_ so a human and
+Claude Code can plan → build → validate → ship → archive across many sessions
+(the CLAUDE.md skeleton, the docs information architecture, the `.claude/`
+workflow commands, the PRD lifecycle, and the kickoff/handoff continuity
+pattern). Together they are the full baseline: **security + operating model.**
+Layer 6 below names the doc set; the scaffold doc is its expansion.
 
 **How to use it:** walk the six layers in order on a new repo. For each, copy
 the checklist, then read the Ballast example for the non-obvious decisions
 (marked ⚠️) that are easy to get wrong. A layer is "done" when every checklist
-box is ticked *and* the gate is enforced in CI, not just configured locally.
+box is ticked _and_ the gate is enforced in CI, not just configured locally.
 
 > **Rolling this out to other repos?** See the companion
 > [`security-baseline-starter-kit.md`](security-baseline-starter-kit.md) — the
@@ -30,14 +39,14 @@ box is ticked *and* the gate is enforced in CI, not just configured locally.
 
 ## Layer overview
 
-| # | Layer | Stops | Enforced by |
-|---|-------|-------|-------------|
-| 1 | [Guardrails](#layer-1--guardrails) | The agent from mutating shared state or exfiltrating secrets | PreToolUse hook + `permissions` in `settings.json` |
-| 2 | [Supply chain](#layer-2--supply-chain) | Malicious / vulnerable dependencies | `.npmrc`, pnpm config, audit gate, Dependabot, Socket.dev, SHA-pinned Actions |
-| 3 | [Code quality gate](#layer-3--code-quality-gate) | Type-unsafe / unformatted / lint-failing code | ESLint, Prettier, `tsc --noEmit`, Husky pre-commit |
-| 4 | [Test infrastructure](#layer-4--test-infrastructure) | Regressions; untested financial math | Vitest + coverage; offline-unit vs devnet-integration split |
-| 5 | [CI](#layer-5--ci) | Any of the above being bypassed before merge | GitHub Actions `ci` job, required status check on protected branches |
-| 6 | [Documentation](#layer-6--documentation) | Knowledge loss; unsafe operation | `CLAUDE.md`, `architecture.md`, `runbook.md`, supply-chain doc, PRD + reports |
+| #   | Layer                                                | Stops                                                        | Enforced by                                                                   |
+| --- | ---------------------------------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| 1   | [Guardrails](#layer-1--guardrails)                   | The agent from mutating shared state or exfiltrating secrets | PreToolUse hook + `permissions` in `settings.json`                            |
+| 2   | [Supply chain](#layer-2--supply-chain)               | Malicious / vulnerable dependencies                          | `.npmrc`, pnpm config, audit gate, Dependabot, Socket.dev, SHA-pinned Actions |
+| 3   | [Code quality gate](#layer-3--code-quality-gate)     | Type-unsafe / unformatted / lint-failing code                | ESLint, Prettier, `tsc --noEmit`, Husky pre-commit                            |
+| 4   | [Test infrastructure](#layer-4--test-infrastructure) | Regressions; untested financial math                         | Vitest + coverage; offline-unit vs devnet-integration split                   |
+| 5   | [CI](#layer-5--ci)                                   | Any of the above being bypassed before merge                 | GitHub Actions `ci` job, required status check on protected branches          |
+| 6   | [Documentation](#layer-6--documentation)             | Knowledge loss; unsafe operation                             | `CLAUDE.md`, `architecture.md`, `runbook.md`, supply-chain doc, PRD + reports |
 
 ---
 
@@ -49,7 +58,7 @@ read a secret. Three mechanisms, in increasing order of expressiveness:
 
 1. **`permissions.allow`** — allowlist-first. Only listed command patterns
    auto-run; everything else prompts the user. This is the default posture.
-2. **`permissions.deny`** — hard blocks for catastrophic forms that must *never*
+2. **`permissions.deny`** — hard blocks for catastrophic forms that must _never_
    run, not even at a prompt (deploy, transfer, force-push, secret reads).
 3. **PreToolUse hook** — a script for policy that globs can't express:
    tokenization, recursion into wrapper commands, conditional matching.
@@ -57,7 +66,7 @@ read a secret. Three mechanisms, in increasing order of expressiveness:
 ### Checklist
 
 - [ ] `.claude/settings.json` exists with `permissions.allow` covering normal
-      dev work (file read, git read + *targeted* staging, build, test, read-only
+      dev work (file read, git read + _targeted_ staging, build, test, read-only
       CLI queries) so the agent isn't prompt-spammed.
 - [ ] `permissions.deny` hard-blocks: deploy/upgrade/close, value transfers,
       `publish`, `git push --force*`, `*--no-verify*`, secret/keypair reads,
@@ -81,7 +90,7 @@ read a secret. Three mechanisms, in increasing order of expressiveness:
 - **`.claude/hooks/block-mutating-commands.mjs`** — PreToolUse hook. Blocks
   git write ops (commit/push/tag/rebase/reset --hard/branch -D/stash drop),
   `gh` writes, `solana` deploy + value transfers, `spl-token` writes,
-  `*publish`, all installs (supply-chain gate — *the user* runs installs),
+  `*publish`, all installs (supply-chain gate — _the user_ runs installs),
   language-eval escape hatches (`node -e`, `python -c`, …), `curl|sh` pipes,
   `rm -rf` on dangerous roots, and `git -c <dangerous-key>=`. ⚠️ It recurses
   into `bash -c`/`env`/`xargs`/`sudo` wrappers and quote-aware-splits pipelines
@@ -97,9 +106,10 @@ read a secret. Three mechanisms, in increasing order of expressiveness:
   message, `Co-Authored-By` trailer for audit) and waits for the user to run it.
 
 **Key decisions:**
+
 1. ⚠️ **Hook over globs for anything stateful.** Globs (`permissions.deny`)
-   can't tokenize or recurse; the hook is the authoritative layer and has *no
-   override flag*. Globs are the fast first line; the hook is the backstop.
+   can't tokenize or recurse; the hook is the authoritative layer and has _no
+   override flag_. Globs are the fast first line; the hook is the backstop.
 2. **Allowlist-first, not denylist-first.** Unknown commands prompt rather than
    run. This travels to mainnet unchanged — the whole point is that the same
    patterns are safe when real keys land.
@@ -122,10 +132,10 @@ execution down to advisory triage.
 - [ ] An **explicit exception list** for the few packages that legitimately need
       a build step (native binaries), and nothing else.
 - [ ] **`pnpm.overrides`** pin a floor for known-vulnerable transitive deps you
-      *can* move.
+      _can_ move.
 - [ ] An **audit gate** in CI that fails on high/critical advisories, with a
       reviewed **allowlist** for advisories you've accepted — each entry carrying
-      a path, a *why-not-exploitable* rationale, and a *resolution trigger*.
+      a path, a _why-not-exploitable_ rationale, and a _resolution trigger_.
 - [ ] **`cargo audit`** for any Rust crates, with the same explicit-ignore model.
 - [ ] **`minimumReleaseAge`** (version cooldown) so a freshly-published
       compromised version isn't installed the day it lands.
@@ -139,7 +149,7 @@ execution down to advisory triage.
 ### Ballast worked example ✅
 
 - **`.npmrc`** — `ignore-scripts=true`. **`package.json`
-  `pnpm.onlyBuiltDependencies: ["esbuild"]`** — the *only* package allowed a
+  `pnpm.onlyBuiltDependencies: ["esbuild"]`** — the _only_ package allowed a
   postinstall (tsup's native binary). `pnpm.overrides`: `protobufjs ^7.5.6`,
   `rollup ^4.59.0`.
 - **`audit-allowlist.json`** — 7 accepted high-severity GHSAs (bigint-buffer,
@@ -155,17 +165,18 @@ execution down to advisory triage.
 - All Actions SHA-pinned (e.g. `actions/checkout@34e1148…`).
 
 **Key decisions:**
+
 1. ⚠️ **`audit-ci` was rejected** — it depends on `event-stream`, a historically
-   *compromised* package. A hand-rolled `jq` filter over `pnpm audit --json` is
+   _compromised_ package. A hand-rolled `jq` filter over `pnpm audit --json` is
    the gate instead; no new attack surface to add an audit tool.
 2. ⚠️ **Peer-dep vulnerabilities can't be `overrides`-fixed.** axios@1.13.2
-   arrives via `@zodios/core` as a *peer* dep; pnpm does not substitute overrides
+   arrives via `@zodios/core` as a _peer_ dep; pnpm does not substitute overrides
    into peer slots. The 5 axios GHSAs are allowlisted (devnet, trusted Pyth
    endpoints only) with the resolution trigger being a Dependabot bump of
    `@pythnetwork/hermes-client` / `@zodios/core`. **On a mainnet repo, revisit:**
    accepting an HTTP-client advisory is only defensible because axios here never
    touches untrusted input.
-3. ⚠️ **picomatch is *not* overridden** — `micromatch@4` declares
+3. ⚠️ **picomatch is _not_ overridden** — `micromatch@4` declares
    `picomatch@^2.3.1`; a blanket override forces micromatch off its range and
    breaks lint-staged + vitest watching. Allowlisted instead, resolution gated on
    an upstream tsup/tinyglobby bump.
@@ -189,7 +200,7 @@ three chances, same ruleset.
 
 - [ ] **ESLint** with `typescript-eslint` type-checked rules (not just syntactic).
 - [ ] ⚠️ Linting uses **`parserOptions.project`** pointed at a tsconfig that
-      *explicitly includes test files and config files* — not `projectService`,
+      _explicitly includes test files and config files_ — not `projectService`,
       which silently skips files outside the first tsconfig it finds.
 - [ ] **Prettier** + `eslint-config-prettier` so formatting and linting don't
       fight; a `.prettierignore` for generated/vendored paths.
@@ -204,7 +215,7 @@ three chances, same ruleset.
   `tseslint.configs.recommendedTypeChecked` + `prettierConfig`.
   `parserOptions.project: './tsconfig.lint.json'`.
 - **`tsconfig.lint.json`** — extends `tsconfig.json`, `noEmit: true`, and
-  explicitly includes `src/**`, `test/**`, *and* `vitest.config.ts` (omitting the
+  explicitly includes `src/**`, `test/**`, _and_ `vitest.config.ts` (omitting the
   config file makes typed linting error on it).
 - **`.prettierrc.js`** + **`.prettierignore`**; **`.husky/pre-commit`** runs
   lint-staged (`lint-staged.config.js`).
@@ -213,12 +224,13 @@ three chances, same ruleset.
 - **Upstream-suppression block:** `src/**/*.ts` disables `no-unsafe-*` /
   `no-explicit-any` — the upstream percolator-cli uses Commander's `.opts()`
   which returns `any`, and CLAUDE.md forbids modifying upstream `src/`. Scoped to
-  `src/` only; all *new* Ballast code in `scripts/ballast/` is held to the full
+  `src/` only; all _new_ Ballast code in `scripts/ballast/` is held to the full
   ruleset.
 
 **Key decisions:**
+
 1. ⚠️ **`project` not `projectService`.** `projectService` finds `tsconfig.json`
-   first (which only includes `src/**`) and *silently* type-checks nothing in
+   first (which only includes `src/**`) and _silently_ type-checks nothing in
    `test/`. The dedicated `tsconfig.lint.json` is the fix — this was the single
    most error-prone setting in the whole effort.
 2. **Suppress narrowly, by path.** Upstream `any` is tolerated only under
@@ -231,7 +243,7 @@ three chances, same ruleset.
 
 ## Layer 4 — Test infrastructure
 
-**Goal:** regressions are caught automatically, and the *fast, deterministic*
+**Goal:** regressions are caught automatically, and the _fast, deterministic_
 tests are cleanly separated from slow networked ones so CI stays green and quick.
 
 ### Checklist
@@ -252,7 +264,7 @@ tests are cleanly separated from slow networked ones so CI stays green and quick
 - **Vitest** — `test: "vitest run"`, `test:coverage: "vitest run --coverage"`.
 - **`vitest.config.ts`** — `include: ['test/**/*.test.ts']` **only**.
   ⚠️ The `tests/` directory (note plural) holds the devnet integration suite
-  (`preflight.ts`, `runner.ts`, T1–T22) and is *never* in the Vitest include —
+  (`preflight.ts`, `runner.ts`, T1–T22) and is _never_ in the Vitest include —
   it would hit live RPC in CI. Two directories, one letter apart, deliberately.
 - Offline unit tests cover price-format transforms, config loading, allowlist
   validation, PnL math. RPC calls and on-chain state are integration-only.
@@ -262,6 +274,7 @@ tests are cleanly separated from slow networked ones so CI stays green and quick
   than silently passing.
 
 **Key decisions:**
+
 1. ⚠️ **`test/` (unit, in CI) vs `tests/` (integration, devnet, never in CI).**
    The naming is intentional and the Vitest `include` enforces it. This is the
    second-most error-prone setting after the ESLint `project` choice.
@@ -274,7 +287,7 @@ tests are cleanly separated from slow networked ones so CI stays green and quick
 
 ## Layer 5 — CI
 
-**Goal:** every layer above is *enforced at the merge boundary*, not merely
+**Goal:** every layer above is _enforced at the merge boundary_, not merely
 configured locally. A PR cannot merge to a protected branch without a green run.
 
 ### Checklist
@@ -293,8 +306,8 @@ configured locally. A PR cannot merge to a protected branch without a green run.
 ### Ballast worked example ✅
 
 - **`.github/workflows/ci.yml`** — triggers on PR + push to `dev`/`master`.
-  Node 20, `pnpm@10`, `--frozen-lockfile`. Steps: jq audit gate → `pnpm run
-  lint` → `pnpm run typecheck` → `vitest run --coverage` → `pnpm build` → Rust
+  Node 22, `pnpm@10`, `--frozen-lockfile`. Steps: jq audit gate → `pnpm run
+lint` → `pnpm run typecheck` → `vitest run --coverage` → `pnpm build` → Rust
   toolchain → `cargo install cargo-audit --locked` → `cargo audit` (8 explicit
   `--ignore`s) in `programs/ballast-matcher`.
 - All Actions SHA-pinned; pnpm store + cargo registry cached on lockfile hashes.
@@ -305,9 +318,10 @@ configured locally. A PR cannot merge to a protected branch without a green run.
 - **Flow:** all feature branches → `dev`, then `dev` → `master`.
 
 **Key decisions:**
+
 1. ⚠️ **`cargo audit` config via explicit `--ignore` flags in CI**, with
    `.cargo/audit.toml` as a local-dev fallback. `audit.toml` in the crate root
-   is *not* reliably auto-discovered by cargo-audit 0.22.x — the CLI flags are
+   is _not_ reliably auto-discovered by cargo-audit 0.22.x — the CLI flags are
    the authoritative gate.
 2. **`cargo install cargo-audit --locked`** rather than a third-party
    `audit-check` Action — fewer unpinned action dependencies in the trust chain.
@@ -351,7 +365,7 @@ someone who didn't know why it was there.
 - **`docs/runbook.md`** — 9-incident operational runbook; `INCIDENT` events
   appended during the response loop.
 - **`docs/supply-chain-hardening.md`** — implemented table, 7 accepted npm vulns
-  + 8 Rust advisories with rationale, Tier 3–4 deferred until mainnet.
+  - 8 Rust advisories with rationale, Tier 3–4 deferred until mainnet.
 - **`docs/PRD-TEMPLATE.md`** + **`docs/prd.md`** + **`docs/reports/`** —
   per-step validation reports keyed to success criteria SC-0.1 … SC-1.8.
 - **`docs/handoff-layer{2,3,4}.md`** — per-session handoffs that carried this
@@ -359,10 +373,11 @@ someone who didn't know why it was there.
   capstone of that effort.**
 
 **Key decisions:**
+
 1. **`CLAUDE.md` is instructions, `architecture.md` is reference.** Splitting
    them keeps the file the agent loads every session short and actionable.
 2. **Documentation is enforcement.** The workflow rule and permission model are
-   written down *and* enforced by Layer 1 — the doc explains the *why* so nobody
+   written down _and_ enforced by Layer 1 — the doc explains the _why_ so nobody
    disables the hook out of confusion.
 3. **Handoff docs + memory notes** make multi-session work resumable: every
    locked decision is recorded once so it's never re-litigated.

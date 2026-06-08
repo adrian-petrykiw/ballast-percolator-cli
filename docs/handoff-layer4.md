@@ -10,28 +10,28 @@
 
 All 9 files for `chore/supply-chain-tier1-2` are written and verified:
 
-| File | Change |
-|---|---|
-| `.npmrc` | `ignore-scripts=true` appended |
-| `package.json` | `pnpm.onlyBuiltDependencies: ["esbuild"]`, overrides for protobufjs/rollup (axios override removed — peer dep mechanics prevent it from working) |
-| `pnpm-workspace.yaml` | `minimumReleaseAge: 10080` (7-day hold for new versions) |
-| `audit-allowlist.json` | 7 allowlisted GHSAs: bigint-buffer, picomatch, 5× axios (all with resolution triggers) |
-| `.github/workflows/ci.yml` | SHA-pinned actions, frozen-lockfile install, jq audit gate, lint/typecheck/test/build, cargo-audit |
-| `.github/dependabot.yml` | npm/cargo/github-actions with semver cooldowns |
-| `.socketrc` | Socket.dev config (GitHub App must be installed in repo settings) |
-| `docs/supply-chain-hardening.md` | Status updated, implemented table, 7 accepted vulns documented |
-| `pnpm-lock.yaml` | protobufjs 7.5.4→7.6.0, rollup 4.54.0→4.60.4; axios still 1.13.2 (acceptable, allowlisted) |
+| File                             | Change                                                                                                                                           |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `.npmrc`                         | `ignore-scripts=true` appended                                                                                                                   |
+| `package.json`                   | `pnpm.onlyBuiltDependencies: ["esbuild"]`, overrides for protobufjs/rollup (axios override removed — peer dep mechanics prevent it from working) |
+| `pnpm-workspace.yaml`            | `minimumReleaseAge: 10080` (7-day hold for new versions)                                                                                         |
+| `audit-allowlist.json`           | 7 allowlisted GHSAs: bigint-buffer, picomatch, 5× axios (all with resolution triggers)                                                           |
+| `.github/workflows/ci.yml`       | SHA-pinned actions, frozen-lockfile install, jq audit gate, lint/typecheck/test/build, cargo-audit                                               |
+| `.github/dependabot.yml`         | npm/cargo/github-actions with semver cooldowns                                                                                                   |
+| `.socketrc`                      | Socket.dev config (GitHub App must be installed in repo settings)                                                                                |
+| `docs/supply-chain-hardening.md` | Status updated, implemented table, 7 accepted vulns documented                                                                                   |
+| `pnpm-lock.yaml`                 | protobufjs 7.5.4→7.6.0, rollup 4.54.0→4.60.4; axios still 1.13.2 (acceptable, allowlisted)                                                       |
 
 **Audit gate verified locally:** 0 violations after filter.
 **`pnpm build` + `pnpm test` (68/68):** green.
 
 Additional fixes landed in follow-up commits on the same PR (cargo-audit CI failure):
 
-| File | Change |
-|---|---|
-| `.github/workflows/ci.yml` | Added explicit `--ignore RUSTSEC-*` flags to `cargo audit` step |
+| File                                         | Change                                                                                              |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `.github/workflows/ci.yml`                   | Added explicit `--ignore RUSTSEC-*` flags to `cargo audit` step                                     |
 | `programs/ballast-matcher/.cargo/audit.toml` | Renamed from `audit.toml` → `.cargo/audit.toml` (cargo-audit canonical location); content unchanged |
-| `docs/supply-chain-hardening.md` | Added Rust vulnerability subsection with all 8 RUSTSEC advisory paths |
+| `docs/supply-chain-hardening.md`             | Added Rust vulnerability subsection with all 8 RUSTSEC advisory paths                               |
 
 ---
 
@@ -43,9 +43,11 @@ Additional fixes landed in follow-up commits on the same PR (cargo-audit CI fail
 
 - **GitHub → Settings → Branches → master protection → Required status checks → add `ci`** (one-time manual step if not yet done, cannot be done via gh CLI without admin token)
 
-### Step 2 — Write rubric doc on chore/tooling-rubric (30 min)
+### Step 2 — Create rubric branch and doc (30 min)
 
-Branch `chore/tooling-rubric` already exists and is checked out. Skip branch creation.
+```bash
+git checkout dev && git pull && git checkout -b chore/tooling-rubric
+```
 
 Create `docs/claude-setup-rubric.md` — **Option C (chosen):** a reusable 6-layer checklist for setting up a new Claude Code project, with the Ballast implementation as the worked example for each layer. Not Ballast-specific — general enough to use on the next CargoBill repo.
 
@@ -92,6 +94,7 @@ Include in PR body: link to supply-chain-hardening.md, summary of all layers com
 ### Step 4 — Update memory file
 
 Update `~/.claude/projects/-Users-ap-Documents-GitHub-ballast-percolator-cli/memory/tooling-hardening-session-state.md` to reflect:
+
 - chore/supply-chain-tier1-2: DONE
 - chore/tooling-rubric: DONE (after it's merged)
 - dev→master final PR: DONE
@@ -120,9 +123,9 @@ Paste this verbatim at the start of the next Claude Code conversation in this re
 We are continuing a multi-session tooling hardening effort on ballast-percolator-cli. Read the memory file at `~/.claude/projects/-Users-ap-Documents-GitHub-ballast-percolator-cli/memory/tooling-hardening-session-state.md` and `docs/handoff-layer4.md` before doing anything.
 
 Current state:
+
 - Branch `chore/supply-chain-tier1-2` is merged to `dev` as PR #7 (commit `2b174b6`) — Step 1 DONE
-- Branch `chore/tooling-rubric` already exists and is checked out — do NOT try to create it
-- Next work: write `docs/claude-setup-rubric.md` on `chore/tooling-rubric` (Option C: 6-layer general checklist + Ballast worked example), PR → dev, then final dev → master PR
+- Next work: create `chore/tooling-rubric` branch from dev, write `docs/claude-setup-rubric.md` (Option C: 6-layer general checklist + Ballast worked example), PR → dev, then final dev → master PR
 - See `docs/handoff-layer4.md` Step 2 for the rubric structure
 
 Do not ask clarifying questions. Confirm what's merged, then proceed with the rubric.
