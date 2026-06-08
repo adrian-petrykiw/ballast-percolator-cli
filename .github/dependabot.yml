@@ -15,21 +15,6 @@ updates:
       interval: weekly
     cooldown:
       default-days: 7
-
-  - package-ecosystem: github-actions
-    directory: /
-    schedule:
-      interval: weekly
-    cooldown:
-      default-days: 7
-      
-ignore:
-  - package-ecosystem: cargo
-    directory: /programs/ballast-matcher
-    schedule:
-      interval: weekly
-    cooldown:
-      default-days: 7
     # solana 1.x -> 2.x is blocked: cargo-build-sbf bundles rustc 1.75 < 2.x MSRV 1.79,
     # and the matcher pins ~1.18 to match Percolator's deployed devnet program. Revisit
     # ONLY as one atomic migration (upgrade local Solana toolchain + move all three crates
@@ -41,3 +26,11 @@ ignore:
         update-types: ["version-update:semver-major"]
       - dependency-name: "solana-program-test"
         update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+
