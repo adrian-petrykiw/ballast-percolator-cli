@@ -55,7 +55,7 @@ Supply-chain controls (npm/cargo dep trust, postinstall script blocking, SBOM ge
 
 ## Upstream: Percolator CLI
 
-TypeScript CLI for Percolator perpetuals on Solana. Targets **v12.21+** exclusively (v12.20 encoders removed). Node 20+, pnpm, ESM, Commander.js. Full source layout, all commands, protocol concepts, and PRD phases: [`docs/architecture.md`](docs/architecture.md).
+TypeScript CLI for Percolator perpetuals on Solana. Targets **v12.21+** exclusively (v12.20 encoders removed). Node 22+, pnpm, ESM, Commander.js. Full source layout, all commands, protocol concepts, and PRD phases: [`docs/architecture.md`](docs/architecture.md).
 
 ### Common commands
 
