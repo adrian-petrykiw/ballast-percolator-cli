@@ -22,7 +22,7 @@
   "dependencies": {
     "@pythnetwork/hermes-client": "^2.1.0",
     "@pythnetwork/pyth-solana-receiver": "^0.13.0",
-    "@solana/spl-token": "^0.3.11",
+    "@solana/spl-token": "^0.4.14",
     "@solana/web3.js": "^1.95.4",
     "commander": "^14.0.3",
     "zod": "^3.23.8"
