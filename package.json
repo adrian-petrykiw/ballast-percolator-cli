@@ -28,7 +28,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@types/node": "^22",
+    "@types/node": "^25",
     "@vitest/coverage-v8": "^2.0.0",
     "dotenv": "^17.2.4",
     "eslint": "^9.0.0",
